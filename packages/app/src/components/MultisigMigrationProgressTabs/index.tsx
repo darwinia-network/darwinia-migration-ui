@@ -3,6 +3,7 @@ import { localeKeys, useAppTranslation } from "@darwinia/app-locale";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Identicon from "@polkadot/react-identicon";
+import BigNumber from "bignumber.js";
 
 const MultisigMigrationProgressTabs = () => {
   const { t } = useAppTranslation();
@@ -37,6 +38,21 @@ const MultisigMigrationProgressTabs = () => {
   const onTabsChange = (selectedTab: Tab) => {
     setSelectedTab(selectedTab);
   };
+
+  const parameters = {
+    destination: {
+      account: "0xe59261f6D4088BcD69985A3D369Ff14cC54EF1E5",
+      status: 0,
+    },
+    type: "Multisig Account",
+    threshold: threshold,
+    member: members,
+    asset: {
+      ring: BigNumber(20000000000000000000),
+      kton: BigNumber(35000000000000000000),
+    },
+  };
+
   return (
     <div className={"flex flex-col"}>
       <div className={"flex flex-col gap-[20px]"}>
@@ -82,6 +98,29 @@ const MultisigMigrationProgressTabs = () => {
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={"px-[20px] pt-[20px] flex flex-col"}>
+                    <div>
+                      <div className={"pb-[10px]"}>{t(localeKeys.parameters)}</div>
+                      <div className={"bg-black"}>
+                        <div className={`flex py-[12px] border-b divider`}>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>Dest</div>
+                          <div className={"flex-1"}>{parameters.destination.account}</div>
+                        </div>
+                        <div className={`flex py-[12px] border-b divider`}>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>Dest</div>
+                          <div className={"flex-1"}>{parameters.destination.account}</div>
+                        </div>
+                        <div className={`flex py-[12px] border-b divider`}>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>Dest</div>
+                          <div className={"flex-1"}>{parameters.destination.account}</div>
+                        </div>
+                        <div className={`flex py-[12px] border-b divider`}>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>Dest</div>
+                          <div className={"flex-1"}>{parameters.destination.account}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
