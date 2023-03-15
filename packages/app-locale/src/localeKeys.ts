@@ -95,4 +95,6 @@ export const localeKeys = {
   type: "type",
   assets: "assets",
   executed: "executed",
+  waitingDeploy: "waitingDeploy",
+  waitingDeployMessage: "waitingDeployMessage",
 };

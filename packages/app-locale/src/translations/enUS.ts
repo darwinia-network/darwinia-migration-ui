@@ -97,6 +97,8 @@ const enUs = {
   [localeKeys.type]: "Type",
   [localeKeys.assets]: "Assets",
   [localeKeys.executed]: "Executed",
+  [localeKeys.waitingDeploy]: "Waiting deploy",
+  [localeKeys.waitingDeployMessage]: `NOTE: This multisig account will need to be manually deployed on this page after the extrinsic is executed to complete the migration of the multi-signature account.`,
 };
 
 export default enUs;

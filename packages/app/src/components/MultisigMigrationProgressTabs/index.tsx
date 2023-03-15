@@ -1,14 +1,23 @@
-import { Tabs, Tab } from "@darwinia/ui";
+import { Tabs, Tab, Tooltip } from "@darwinia/ui";
 import { localeKeys, useAppTranslation } from "@darwinia/app-locale";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Identicon from "@polkadot/react-identicon";
 import BigNumber from "bignumber.js";
+import crabIcon from "../../assets/images/crab.svg";
+import ringIcon from "../../assets/images/ring.svg";
+import cktonIcon from "../../assets/images/ckton.svg";
+import ktonIcon from "../../assets/images/kton.svg";
+import helpIcon from "../../assets/images/help.svg";
+import infoIcon from "../../assets/images/info.svg";
+import { useWallet } from "@darwinia/app-providers";
+import { prettifyNumber, prettifyTooltipNumber } from "@darwinia/app-utils";
 
 const MultisigMigrationProgressTabs = () => {
   const { t } = useAppTranslation();
   const [memberAccounts, setMemberAccounts] = useState<string[]>();
   const location = useLocation();
+  const { selectedNetwork } = useWallet();
   const params = new URLSearchParams(location.search);
   const address = params.get("address");
   const members = (params.get("who") ?? "").split(",");
@@ -51,6 +60,17 @@ const MultisigMigrationProgressTabs = () => {
       ring: BigNumber(20000000000000000000),
       kton: BigNumber(35000000000000000000),
     },
+  };
+
+  const ringTokenIcon = selectedNetwork?.name === "Crab" ? crabIcon : ringIcon;
+  const ktonTokenIcon = selectedNetwork?.name === "Crab" ? cktonIcon : ktonIcon;
+
+  const getRingTooltipMessage = () => {
+    return <div>Ring Message</div>;
+  };
+
+  const getKtonTooltipMessage = () => {
+    return <div>KTON Message</div>;
   };
 
   return (
@@ -106,20 +126,67 @@ const MultisigMigrationProgressTabs = () => {
                       <div className={"pb-[10px]"}>{t(localeKeys.parameters)}</div>
                       <div className={"bg-black"}>
                         <div className={`flex py-[12px] border-b divider`}>
-                          <div className={"px-[10px] min-w-[160px] shrink-0"}>Dest</div>
-                          <div className={"flex-1"}>{parameters.destination.account}</div>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.destination)}</div>
+                          <div className={"flex-1 flex gap-[10px] items-center"}>
+                            <div>{parameters.destination.account}</div>
+                            <div className={"text-12 bg-primary px-[5px] py-[4px] flex gap-[4px]"}>
+                              <Tooltip message={t(localeKeys.waitingDeployMessage)}>
+                                <img className={"w-[16px] h-[16px]"} src={infoIcon} alt="icon" />
+                              </Tooltip>
+                              <div>{t(localeKeys.waitingDeploy)}</div>
+                            </div>
+                          </div>
                         </div>
                         <div className={`flex py-[12px] border-b divider`}>
-                          <div className={"px-[10px] min-w-[160px] shrink-0"}>Dest</div>
-                          <div className={"flex-1"}>{parameters.destination.account}</div>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.type)}</div>
+                          <div className={"flex-1"}>{parameters.type}</div>
                         </div>
                         <div className={`flex py-[12px] border-b divider`}>
-                          <div className={"px-[10px] min-w-[160px] shrink-0"}>Dest</div>
-                          <div className={"flex-1"}>{parameters.destination.account}</div>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.threshold)}</div>
+                          <div className={"flex-1"}>{parameters.threshold}</div>
                         </div>
                         <div className={`flex py-[12px] border-b divider`}>
-                          <div className={"px-[10px] min-w-[160px] shrink-0"}>Dest</div>
-                          <div className={"flex-1"}>{parameters.destination.account}</div>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.members)}</div>
+                          <div className={"flex-1 flex flex-col"}>
+                            {parameters.member.map((item, index) => {
+                              return <div key={`${item}-${index}`}>{item}</div>;
+                            })}
+                          </div>
+                        </div>
+                        <div className={`flex py-[12px] border-b divider`}>
+                          <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.asset)}</div>
+                          <div className={"flex-1"}>
+                            <div className={"flex flex-row gap-[20px]"}>
+                              <div className={"flex gap-[10px] items-center"}>
+                                <img className={"w-[18px] shrink-0"} src={ringTokenIcon} alt="image" />
+                                <div className={"flex gap-[10px] items-center"}>
+                                  <Tooltip message={prettifyTooltipNumber(parameters.asset.ring)}>
+                                    {prettifyNumber({
+                                      number: parameters.asset.ring,
+                                    })}
+                                  </Tooltip>
+                                  {selectedNetwork?.ring.symbol.toUpperCase()}
+                                </div>
+                                <Tooltip className={"shrink-0"} message={getRingTooltipMessage()}>
+                                  <img className={"w-[16px] shrink-0 clickable"} src={helpIcon} alt="image" />
+                                </Tooltip>
+                              </div>
+                              <div className={"flex gap-[10px] items-center"}>
+                                <img className={"w-[18px] shrink-0"} src={ktonTokenIcon} alt="image" />
+                                <div className={"flex gap-[10px] items-center"}>
+                                  <Tooltip message={prettifyTooltipNumber(parameters.asset.kton)}>
+                                    {prettifyNumber({
+                                      number: parameters.asset.kton,
+                                    })}
+                                  </Tooltip>
+                                  {selectedNetwork?.kton.symbol.toUpperCase()}
+                                </div>
+                                <Tooltip className={"shrink-0"} message={getKtonTooltipMessage()}>
+                                  <img className={"w-[16px] shrink-0 clickable"} src={helpIcon} alt="image" />
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

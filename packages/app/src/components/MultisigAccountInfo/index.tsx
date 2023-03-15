@@ -167,7 +167,14 @@ const MultisigAccountInfo = () => {
   };
 
   return (
-    <div>
+    <div className={"flex flex-col gap-[20px]"}>
+      <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
+        <div>One more step! Please click </div>
+        <div>
+          <Button>Deploy</Button>
+        </div>
+        <div>to complete the migration of the multisig account.</div>
+      </div>
       <div className={"card"}>
         <div className={"flex flex-col"}>
           <div className={"flex justify-between items-center border-b divider pb-[20px]"}>
