@@ -2,7 +2,7 @@ import { Storage } from "@darwinia/app-types";
 import { STORAGE as APP_STORAGE } from "@darwinia/app-config";
 import BigNumber from "bignumber.js";
 import { ethers, utils } from "ethers";
-import { encodeAddress } from "@polkadot/util-crypto";
+import { encodeAddress, createKeyMulti, sortAddresses, isAddress } from "@polkadot/util-crypto";
 
 export const setStore = (key: keyof Storage, value: unknown) => {
   try {
@@ -120,3 +120,16 @@ export function convertToSS58(text: string, prefix: number, isShort = false): st
     return "";
   }
 }
+
+export const createMultiSigAccount = (addresses: string[], prefix: number, threshold = 1) => {
+  const multiAddress = createKeyMulti(addresses, threshold);
+
+  // Convert byte array to SS58 encoding. pangoro-18, crab-42
+  const ss58Address = encodeAddress(multiAddress, prefix);
+
+  return ss58Address;
+};
+
+export const isSubstrateAddress = (address: string) => {
+  return isAddress(address);
+};

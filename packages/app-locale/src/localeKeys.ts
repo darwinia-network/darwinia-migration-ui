@@ -97,4 +97,12 @@ export const localeKeys = {
   executed: "executed",
   waitingDeploy: "waitingDeploy",
   waitingDeployMessage: "waitingDeployMessage",
+  oneMoreStep: "oneMoreStep",
+  deploy: "deploy",
+  toCompleteMigration: "toCompleteMigration",
+  multisigMigrationSuccessful: "multisigMigrationSuccessful",
+  invalidName: "invalidName",
+  invalidThreshold: "invalidThreshold",
+  invalidMemberAddress: "invalidMemberAddress",
+  selectYourAddress: "selectYourAddress",
 };

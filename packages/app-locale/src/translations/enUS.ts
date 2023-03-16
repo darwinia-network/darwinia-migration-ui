@@ -99,6 +99,14 @@ const enUs = {
   [localeKeys.executed]: "Executed",
   [localeKeys.waitingDeploy]: "Waiting deploy",
   [localeKeys.waitingDeployMessage]: `NOTE: This multisig account will need to be manually deployed on this page after the extrinsic is executed to complete the migration of the multi-signature account.`,
+  [localeKeys.oneMoreStep]: "One more step! Please click",
+  [localeKeys.deploy]: "Deploy",
+  [localeKeys.toCompleteMigration]: "to complete the migration of the multisig account.",
+  [localeKeys.multisigMigrationSuccessful]: `This Multisig account has been migrated successfully. Please note that version 2.0 still supports multisig, and you can use <a target='_blank' class="link link-primary" href={{link}}>Gnosis Safe Multisig - IPFS</a> to perform multisig operations on 2.0.`,
+  [localeKeys.invalidName]: "Invalid name",
+  [localeKeys.invalidThreshold]: "Invalid threshold",
+  [localeKeys.invalidMemberAddress]: "Invalid member address",
+  [localeKeys.selectYourAddress]: "Select your address",
 };
 
 export default enUs;

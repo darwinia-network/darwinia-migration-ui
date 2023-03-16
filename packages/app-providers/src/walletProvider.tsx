@@ -11,7 +11,6 @@ import {
   SpVersionRuntimeVersion,
   PalletVestingVestingInfo,
   DarwiniaAccountMigrationAssetAccount,
-  CreateOptions,
   MultisigAccount,
 } from "@darwinia/app-types";
 import { ApiPromise, WsProvider, SubmittableResult } from "@polkadot/api";
@@ -24,7 +23,7 @@ import BigNumber from "bignumber.js";
 import { FrameSystemAccountInfo } from "@darwinia/api-derive/accounts/types";
 import { UnSubscription } from "./storageProvider";
 import { Option, Vec } from "@polkadot/types";
-import { convertToSS58, setStore, getStore } from "@darwinia/app-utils";
+import { convertToSS58, setStore, getStore, createMultiSigAccount } from "@darwinia/app-utils";
 
 /*This is just a blueprint, no value will be stored in here*/
 const initialState: WalletCtx = {
@@ -64,7 +63,7 @@ const initialState: WalletCtx = {
   setMultisig: (value: boolean) => {
     //ignore
   },
-  checkDarwiniaOneMultisigAccount: (signatories: string[], threshold: number, { name, tags = [] }: CreateOptions) => {
+  checkDarwiniaOneMultisigAccount: (signatories: string[], threshold: number, name?: string) => {
     return Promise.resolve(undefined);
   },
 };
@@ -95,11 +94,11 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   const setSelectedWallet = useCallback((name: SupportedWallet | null | undefined) => {
     _setSelectedWallet(name);
-    setStore('selectedWallet', name);
+    setStore("selectedWallet", name);
   }, []);
 
   useEffect(() => {
-    _setSelectedWallet(getStore('selectedWallet'));
+    _setSelectedWallet(getStore("selectedWallet"));
   }, []);
 
   useEffect(() => {
@@ -194,6 +193,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   useEffect(() => {
     const parseAccounts = async () => {
       if (!apiPromise) {
+        // don't query account balances if you're on multisig account migration
         setLoadingBalance(false);
         return;
       }
@@ -202,8 +202,13 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
       const accounts = injectedAccountsRef.current;
       for (let i = 0; i < accounts.length; i++) {
-        const prettyName = await getPrettyName(accounts[i].address);
-        const balance = await getAccountBalance(accounts[i].address);
+        const prettyName = isMultisig ? "" : await getPrettyName(accounts[i].address);
+        const balance = isMultisig
+          ? {
+              ring: BigNumber(0),
+              kton: BigNumber(0),
+            }
+          : await getAccountBalance(accounts[i].address);
         customAccounts.push({
           ...accounts[i],
           prettyName,
@@ -236,86 +241,89 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       setLoadingBalance(false);
       //ignore
     });
-  }, [injectedAccountsRef.current, apiPromise, selectedNetwork]);
+  }, [injectedAccountsRef.current, apiPromise, selectedNetwork, isMultisig]);
 
   /*Connect to MetaMask*/
-  const connectWallet = useCallback(async (name: SupportedWallet) => {
-    if (!selectedNetwork || isRequestingWalletConnection) {
-      return;
-    }
-
-    const walletCfg = dAppSupportedWallets.find((item) => item.name === name);
-    if (!walletCfg) {
-      return;
-    }
-
-    const injecteds = window.injectedWeb3;
-    const source = injecteds && walletCfg.sources.find((source) => injecteds[source]);
-    if (!source) {
-      setWalletConnected(false);
-      setRequestingWalletConnection(false);
-      setLoadingTransaction(false);
-      setLoadingBalance(false);
-      setError({
-        code: 1,
-        message: "Please Install Polkadot JS Extension",
-      });
-      return;
-    }
-
-    try {
-      setWalletConnected(false);
-      setRequestingWalletConnection(true);
-      const provider = new WsProvider(selectedNetwork.substrate.wssURL);
-      const api = new ApiPromise({
-        provider,
-      });
-
-      api.on("connected", async () => {
-        const readyAPI = await api.isReady;
-        setApiPromise(readyAPI);
-        setRequestingWalletConnection(false);
-      });
-      api.on("disconnected", () => {
-        // console.log("disconnected");
-      });
-      api.on("error", () => {
-        // console.log("error");
-      });
-
-      const wallet = injecteds[source];
-      if (!wallet.enable) {
+  const connectWallet = useCallback(
+    async (name: SupportedWallet) => {
+      if (!selectedNetwork || isRequestingWalletConnection) {
         return;
       }
-      const res = await wallet.enable(DARWINIA_APPS);
-      if (res) {
-        const enabledExtensions = [res];
 
-        /* this is the signer that needs to be used when we sign a transaction */
-        setSigner(enabledExtensions[0].signer);
-        /* this will return a list of all the accounts that are in the Polkadot extension */
-        const unfilteredAccounts = await res.accounts.get();
-        const accounts = unfilteredAccounts
-          .filter((account) => !account.address.startsWith("0x"))
-          .map(({ address, genesisHash, name, type }) => ({ address, type, meta: { genesisHash, name, source  } }));
-        accounts.forEach((account) => {
-          keyring.saveAddress(account.address, account.meta);
-        });
-        injectedAccountsRef.current = accounts;
-
-        if (accounts.length > 0) {
-          /* we default using the first account */
-          setWalletConnected(true);
-        }
-        setSelectedWallet(name);
+      const walletCfg = dAppSupportedWallets.find((item) => item.name === name);
+      if (!walletCfg) {
+        return;
       }
-    } catch (e) {
-      setWalletConnected(false);
-      setRequestingWalletConnection(false);
-      setLoadingBalance(false);
-      //ignore
-    }
-  }, [selectedNetwork, isRequestingWalletConnection, apiPromise, getPrettyName]);
+
+      const injecteds = window.injectedWeb3;
+      const source = injecteds && walletCfg.sources.find((source) => injecteds[source]);
+      if (!source) {
+        setWalletConnected(false);
+        setRequestingWalletConnection(false);
+        setLoadingTransaction(false);
+        setLoadingBalance(false);
+        setError({
+          code: 1,
+          message: "Please Install Polkadot JS Extension",
+        });
+        return;
+      }
+
+      try {
+        setWalletConnected(false);
+        setRequestingWalletConnection(true);
+        const provider = new WsProvider(selectedNetwork.substrate.wssURL);
+        const api = new ApiPromise({
+          provider,
+        });
+
+        api.on("connected", async () => {
+          const readyAPI = await api.isReady;
+          setApiPromise(readyAPI);
+          setRequestingWalletConnection(false);
+        });
+        api.on("disconnected", () => {
+          // console.log("disconnected");
+        });
+        api.on("error", () => {
+          // console.log("error");
+        });
+
+        const wallet = injecteds[source];
+        if (!wallet.enable) {
+          return;
+        }
+        const res = await wallet.enable(DARWINIA_APPS);
+        if (res) {
+          const enabledExtensions = [res];
+
+          /* this is the signer that needs to be used when we sign a transaction */
+          setSigner(enabledExtensions[0].signer);
+          /* this will return a list of all the accounts that are in the Polkadot extension */
+          const unfilteredAccounts = await res.accounts.get();
+          const accounts = unfilteredAccounts
+            .filter((account) => !account.address.startsWith("0x"))
+            .map(({ address, genesisHash, name, type }) => ({ address, type, meta: { genesisHash, name, source } }));
+          accounts.forEach((account) => {
+            keyring.saveAddress(account.address, account.meta);
+          });
+          injectedAccountsRef.current = accounts;
+
+          if (accounts.length > 0) {
+            /* we default using the first account */
+            setWalletConnected(true);
+          }
+          setSelectedWallet(name);
+        }
+      } catch (e) {
+        setWalletConnected(false);
+        setRequestingWalletConnection(false);
+        setLoadingBalance(false);
+        //ignore
+      }
+    },
+    [selectedNetwork, isRequestingWalletConnection, apiPromise, getPrettyName]
+  );
 
   const changeSelectedNetwork = useCallback(
     (network: ChainConfig) => {
@@ -396,30 +404,35 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   }, [apiPromise]);
 
   const checkDarwiniaOneMultisigAccount = useCallback(
-    (signatories: string[], threshold: number, { name, tags = [] }: CreateOptions) => {
-      if (!apiPromise) {
+    async (signatories: string[], threshold: number, name?: string) => {
+      if (!apiPromise || !selectedNetwork) {
         return Promise.resolve(undefined);
       }
 
-      const genesisHash = apiPromise.genesisHash.toString();
+      const newAccount = createMultiSigAccount(signatories, selectedNetwork.prefix, threshold);
+      //check if the account really exists
+      const response = await apiPromise.query.accountMigration.accounts(newAccount);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const accountInfo = response as unknown as Option<FrameSystemAccountInfo>;
+      if (!accountInfo || !accountInfo.isSome) {
+        // the account doesn't exist on the chain
+        return Promise.resolve(undefined);
+      }
 
-      const accountResult = keyring.addMultisig(signatories, threshold, { genesisHash, name, tags });
-      const { pair } = accountResult;
-      const { meta } = pair;
+      // the account exists on the chain
       const account: MultisigAccount = {
-        address: pair.address,
-        type: pair.type,
+        address: newAccount,
         meta: {
-          genesisHash: meta.genesisHash?.toString() ?? "",
-          name: (meta.name ?? "") as string,
-          who: (meta.who ?? []) as string[],
-          threshold: (meta.threshold ?? 1) as number,
+          name: name ?? "",
+          who: [...signatories],
+          threshold,
         },
       };
 
       return Promise.resolve(account);
     },
-    [apiPromise]
+    [apiPromise, selectedNetwork]
   );
 
   return (

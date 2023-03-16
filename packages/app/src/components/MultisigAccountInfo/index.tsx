@@ -169,11 +169,18 @@ const MultisigAccountInfo = () => {
   return (
     <div className={"flex flex-col gap-[20px]"}>
       <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
-        <div>One more step! Please click </div>
-        <div>
-          <Button>Deploy</Button>
+        <div>{t(localeKeys.oneMoreStep)}</div>
+        <div className={"px-[5px]"}>
+          <Button>{t(localeKeys.deploy)}</Button>
         </div>
-        <div>to complete the migration of the multisig account.</div>
+        <div>{t(localeKeys.toCompleteMigration)}</div>
+      </div>
+      <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
+        <div
+          dangerouslySetInnerHTML={{
+            __html: t(localeKeys.multisigMigrationSuccessful, { link: "https://www.test.com" }),
+          }}
+        />
       </div>
       <div className={"card"}>
         <div className={"flex flex-col"}>

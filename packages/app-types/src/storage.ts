@@ -1,4 +1,5 @@
 import BigNumber from "bignumber.js";
+import { Contract } from "@ethersproject/contracts";
 
 export interface AssetDetail {
   deposit?: BigNumber;
@@ -27,4 +28,5 @@ export interface StorageCtx {
   migratedAssetDistribution: AssetDistribution | undefined;
   checkEVMAccountStatus: (accountId: string) => Promise<void>;
   isAccountFree: boolean | undefined;
+  multisigContract: Contract | undefined;
 }

@@ -5,6 +5,7 @@ export type SupportedWallet = "Polkadot{.js}" | "Talisman" | "SubWallet";
 export type SupportedBrowser = "Chrome" | "Firefox" | "Brave" | "Edge" | "Opera";
 export type ChainName = "Crab" | "Pangolin" | "Darwinia" | "Pangoro";
 import { Struct } from "@polkadot/types";
+import { ContractInterface } from "@ethersproject/contracts";
 
 export interface Token {
   name?: string;
@@ -21,6 +22,14 @@ export interface Substrate {
   graphQlURL: string;
 }
 
+export interface ContractABI {
+  multisig: ContractInterface;
+}
+
+export interface ContractAddress {
+  multisig: string;
+}
+
 export interface ChainConfig {
   name: ChainName; // this name is used to set the chain name in MetaMask, the user will later see this name on Metamask
   displayName: string; // This name is used on the dApp just for the user to see
@@ -29,6 +38,8 @@ export interface ChainConfig {
   kton: Token;
   prefix: number;
   substrate: Substrate;
+  contractInterface: ContractABI;
+  contractAddresses: ContractAddress;
 }
 
 export interface WalletExtension {
@@ -37,11 +48,11 @@ export interface WalletExtension {
 }
 
 export type WalletSource =
-  | 'polkadot-js'
+  | "polkadot-js"
   | '"polkadot-js"'
-  | 'talisman'
+  | "talisman"
   | '"talisman"'
-  | 'subwallet-js'
+  | "subwallet-js"
   | '"subwallet-js"';
 
 export interface WalletConfig {
@@ -85,7 +96,7 @@ export interface WalletCtx {
   checkDarwiniaOneMultisigAccount: (
     signatories: string[],
     threshold: number,
-    { name, tags = [] }: CreateOptions
+    name?: string
   ) => Promise<MultisigAccount | undefined>;
 }
 
@@ -93,21 +104,13 @@ export interface SpVersionRuntimeVersion extends Struct {
   specName: string;
 }
 
-export interface CreateOptions {
-  genesisHash?: string;
-  name: string;
-  tags?: string[];
-}
-
 export interface MultisigAccountMeta {
   who: string[];
-  genesisHash: string;
   name: string;
   threshold: number;
 }
 
 export interface MultisigAccount {
   address: string;
-  type: string;
   meta: MultisigAccountMeta;
 }

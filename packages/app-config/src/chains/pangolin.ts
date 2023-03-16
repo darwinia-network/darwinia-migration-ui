@@ -1,4 +1,5 @@
 import { ChainConfig } from "@darwinia/app-types";
+import multisigContract from "../abi/contract.json";
 
 export const pangolin: ChainConfig = {
   name: "Pangolin",
@@ -12,6 +13,12 @@ export const pangolin: ChainConfig = {
     name: "PRING",
     symbol: "PRING",
     decimals: 9,
+  },
+  contractAddresses: {
+    multisig: "0x227c3e01071C2429766dDec2267A613e32DD463e",
+  },
+  contractInterface: {
+    multisig: multisigContract,
   },
   chainId: 43,
   prefix: 42,

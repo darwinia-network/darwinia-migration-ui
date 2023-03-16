@@ -10,7 +10,7 @@ import { CustomInjectedAccountWithMeta, MultisigAccount } from "@darwinia/app-ty
 import noDataIcon from "../../assets/images/no-data.svg";
 import helpIcon from "../../assets/images/help.svg";
 import trashIcon from "../../assets/images/trash-bin.svg";
-import { getStore, prettifyNumber, setStore } from "@darwinia/app-utils";
+import { getStore, isSubstrateAddress, isValidNumber, prettifyNumber, setStore } from "@darwinia/app-utils";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface Asset {
@@ -33,15 +33,14 @@ const MultisigMigrationProcess = () => {
   const { t } = useAppTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showMigrationForm, setShowMigrationForm] = useState<boolean>(false);
   const currentAccount = useRef<CustomInjectedAccountWithMeta>();
   const canShowAccountNotification = useRef(false);
   const [isAddMultisigModalVisible, setAddMultisigModalVisibility] = useState<boolean>(false);
   const accountsOptions: OptionProps[] = (injectedAccounts?.map((item, index) => {
     return {
       id: index,
-      value: item.address,
-      label: item.address,
+      value: item.formattedAddress,
+      label: item.formattedAddress,
     };
   }) ?? []) as unknown as OptionProps[];
 
@@ -176,49 +175,16 @@ const MultisigMigrationProcess = () => {
   }, []);
 
   useEffect(() => {
-    console.log("list changed");
-  }, [multisigAccountsList]);
-
-  useEffect(() => {
     if (currentAccount.current?.address !== selectedAccount?.address) {
       currentAccount.current = selectedAccount;
       canShowAccountNotification.current = true;
     }
   }, [selectedAccount]);
 
-  useEffect(() => {
-    if (migrationAssetDistribution && !isLoadingLedger) {
-      const hasRingAmount =
-        migrationAssetDistribution.ring.transferable.gt(0) ||
-        migrationAssetDistribution.ring.deposit?.gt(0) ||
-        migrationAssetDistribution.ring.bonded.gt(0) ||
-        migrationAssetDistribution.ring.unbonded.gt(0) ||
-        migrationAssetDistribution.ring.unbonding.gt(0) ||
-        migrationAssetDistribution.ring.vested?.gt(0);
-      const hasKtonAmount =
-        migrationAssetDistribution.kton.transferable.gt(0) ||
-        migrationAssetDistribution.kton.bonded.gt(0) ||
-        migrationAssetDistribution.kton.unbonded.gt(0) ||
-        migrationAssetDistribution.kton.unbonding.gt(0);
-      if (hasRingAmount || hasKtonAmount) {
-        setShowMigrationForm(true);
-      } else {
-        // makes sure that the prompt is only shown once when the selected account changes
-        if (canShowAccountNotification.current) {
-          canShowAccountNotification.current = false;
-          notification.error({
-            message: <div>{t(localeKeys.noTokensToMigrate)}</div>,
-          });
-        }
-        setShowMigrationForm(false);
-      }
-    }
-  }, [migrationAssetDistribution, isLoadingLedger]);
-
   const footerLinks = [
     {
       title: t(localeKeys.howToMigrate),
-      url: "https://www.baidu.com",
+      url: "https://www.notion.so/itering/How-to-migrate-the-account-to-Crab-2-0-9b8f835c914f44a29d9727a0a03b9f5d",
     },
     {
       title: t(localeKeys.darwiniaMergeOverview),
@@ -234,23 +200,52 @@ const MultisigMigrationProcess = () => {
     setAddMultisigModalVisibility(true);
   };
 
+  const resetAddAccountForm = () => {
+    setThreshold("");
+    setName("");
+    setMemberAddresses([{ id: new Date().getTime(), address: "" }]);
+    setSelectedAddress("");
+    setCheckingAccountExistence(false);
+  };
+
   const onCloseAddAccountModal = () => {
     setAddMultisigModalVisibility(false);
+    resetAddAccountForm();
   };
 
   const onCreateMultisigAccount = async () => {
     try {
-      setCheckingAccountExistence(true);
-      const signatories = memberAddresses.map((item) => item.address);
+      const signatories = memberAddresses
+        .map((item) => item.address)
+        .filter((item) => item.length > 0 && isSubstrateAddress(item));
       signatories.unshift(selectedAddress);
+      if (name.trim().length === 0) {
+        notification.success({
+          message: <div>{t(localeKeys.invalidName)}</div>,
+        });
+        return;
+      }
+      if (!isValidNumber(threshold)) {
+        notification.success({
+          message: <div>{t(localeKeys.invalidThreshold)}</div>,
+        });
+        return;
+      }
+      if (selectedAddress.trim().length === 0) {
+        notification.success({
+          message: <div>{t(localeKeys.selectYourAddress)}</div>,
+        });
+        return;
+      }
+      setCheckingAccountExistence(true);
       const thresholdNumber = Number(threshold);
-      const account = await checkDarwiniaOneMultisigAccount(signatories, thresholdNumber, { name });
+      const account = await checkDarwiniaOneMultisigAccount(signatories, thresholdNumber, name);
       setCheckingAccountExistence(false);
-      console.log(account);
+
       if (typeof account === "undefined") {
         notification.success({
           message: <div>{t(localeKeys.multisigCreationFailed)}</div>,
-          duration: 10000,
+          duration: 15000,
         });
         return;
       }
@@ -263,7 +258,10 @@ const MultisigMigrationProcess = () => {
       setMultisigAccountsList((old) => {
         return [...old, ...data];
       });
+      //hide modal
+      onCloseAddAccountModal();
     } catch (e) {
+      console.log(e);
       setCheckingAccountExistence(false);
       //ignore
     }
@@ -314,9 +312,11 @@ const MultisigMigrationProcess = () => {
         <div className={"w-full"}>
           <div className={"divider border-b pb-[10px] flex justify-between items-center"}>
             <div>{t(localeKeys.multisig)}</div>
-            <Button onClick={onShowAddAccountModal} className={"min-w-[150px]"}>
-              {t(localeKeys.addMultisigAccount)}
-            </Button>
+            {multisigAccountsList.length > 0 && (
+              <Button onClick={onShowAddAccountModal} className={"min-w-[150px]"}>
+                {t(localeKeys.addMultisigAccount)}
+              </Button>
+            )}
           </div>
         </div>
 

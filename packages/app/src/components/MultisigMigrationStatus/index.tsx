@@ -105,7 +105,7 @@ const MultisigMigrationStatus = ({ accountMigration }: Props) => {
   const footerLinks = [
     {
       title: t(localeKeys.howToMigrate),
-      url: "https://www.baidu.com",
+      url: "https://www.notion.so/itering/How-to-migrate-the-account-to-Crab-2-0-9b8f835c914f44a29d9727a0a03b9f5d",
     },
     {
       title: t(localeKeys.darwiniaMergeOverview),

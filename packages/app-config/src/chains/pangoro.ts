@@ -1,4 +1,5 @@
 import { ChainConfig } from "@darwinia/app-types";
+import multisigContract from "../abi/contract.json";
 
 export const pangoro: ChainConfig = {
   name: "Pangoro",
@@ -13,6 +14,12 @@ export const pangoro: ChainConfig = {
     name: "ORING",
     symbol: "ORING",
     decimals: 9,
+  },
+  contractAddresses: {
+    multisig: "0xF09FE18d3f4b4345b47c098C8B8Fba7743418aA4",
+  },
+  contractInterface: {
+    multisig: multisigContract,
   },
   chainId: 45,
   prefix: 18,
