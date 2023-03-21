@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiPromise } from "@polkadot/api";
 import { UnSubscription } from "../storageProvider";
 import { Header } from "@polkadot/types/interfaces";
-
-interface CurrentBlock {
-  number: number;
-  timestamp: number;
-}
+import { CurrentBlock } from "@darwinia/app-types";
 
 const useBlock = (apiPromise: ApiPromise | undefined) => {
   const [currentBlock, setCurrentBlock] = useState<CurrentBlock | undefined>();

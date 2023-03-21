@@ -45,29 +45,38 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
   }, [selectedAccount, selectedNetwork]);
 
   const getAccountAsset = useCallback(
-    (accountId: string, parentBlockHash?: string) => {
+    async (
+      accountId: string,
+      parentBlockHash?: string,
+      hasReturnOutput = false,
+      showLoading = true
+    ): Promise<AssetDistribution | undefined | void> => {
       const isDataAtPoint = typeof parentBlockHash !== "undefined";
 
-      const getStakingLedgerAndDeposits = async () => {
+      const getStakingLedgerAndDeposits = async (): Promise<AssetDistribution | undefined> => {
         if (!apiPromise || !currentBlock) {
           setLoadingMigratedLedger(false);
           setLoadingLedger(false);
-          return;
+          return Promise.resolve(undefined);
         }
         const api = isDataAtPoint ? await apiPromise.at(parentBlockHash ?? "") : apiPromise;
 
-        if (isInitialLoad.current && !isDataAtPoint) {
-          isInitialLoad.current = false;
-          setLoadingLedger(true);
-        } else {
-          setLoadingLedger(false);
+        if (showLoading) {
+          if (isInitialLoad.current && !isDataAtPoint) {
+            isInitialLoad.current = false;
+            setLoadingLedger(true);
+          } else {
+            setLoadingLedger(false);
+          }
         }
 
-        if (isInitialMigratedDataLoad.current && isDataAtPoint) {
-          isInitialMigratedDataLoad.current = false;
-          setLoadingMigratedLedger(true);
-        } else {
-          setLoadingMigratedLedger(false);
+        if (showLoading) {
+          if (isInitialMigratedDataLoad.current && isDataAtPoint) {
+            isInitialMigratedDataLoad.current = false;
+            setLoadingMigratedLedger(true);
+          } else {
+            setLoadingMigratedLedger(false);
+          }
         }
 
         let ktonBalance = BigNumber(0);
@@ -123,9 +132,9 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
         const parseData = (
           ledgerOption: Option<DarwiniaStakingLedgerEncoded> | undefined,
           depositsOption: Option<Vec<DepositEncoded>> | undefined
-        ) => {
+        ): AssetDistribution | undefined => {
           if (!ledgerOption || !depositsOption) {
-            return;
+            return undefined;
           }
 
           let totalDepositsAmount = BigNumber(0);
@@ -207,7 +216,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
               .minus(unbondingKtonAmount);
 
             if (isDataAtPoint) {
-              setMigratedAssetDistribution({
+              const asset = {
                 ring: {
                   transferable: transferableRing,
                   deposit: totalDepositsAmount,
@@ -222,9 +231,13 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
                   unbonded: unbondedKtonAmount,
                   unbonding: unbondingKtonAmount,
                 },
-              });
+              };
+              if (!hasReturnOutput) {
+                setMigratedAssetDistribution(asset);
+              }
+              return asset;
             } else {
-              setStakedAssetDistribution({
+              const asset = {
                 ring: {
                   transferable: transferableRing,
                   deposit: totalDepositsAmount,
@@ -239,7 +252,11 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
                   unbonded: unbondedKtonAmount,
                   unbonding: unbondingKtonAmount,
                 },
-              });
+              };
+              if (!hasReturnOutput) {
+                setStakedAssetDistribution(asset);
+              }
+              return asset;
             }
           } else {
             // this user never took part in staking
@@ -249,7 +266,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
                 : BigNumber(0);
               const transferableKTON = ktonBalance;
 
-              setMigratedAssetDistribution({
+              const asset = {
                 ring: {
                   transferable: transferableRing,
                   deposit: totalDepositsAmount,
@@ -264,12 +281,16 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
                   unbonded: BigNumber(0),
                   unbonding: BigNumber(0),
                 },
-              });
+              };
+              if (!hasReturnOutput) {
+                setMigratedAssetDistribution(asset);
+              }
+              return asset;
             } else {
               const transferableRing = totalBalance.gt(0)
                 ? totalBalance.plus(reservedAmount).minus(totalDepositsAmount)
                 : BigNumber(0);
-              setStakedAssetDistribution({
+              const asset = {
                 ring: {
                   transferable: transferableRing,
                   deposit: totalDepositsAmount,
@@ -284,20 +305,25 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
                   unbonded: BigNumber(0),
                   unbonding: BigNumber(0),
                 },
-              });
+              };
+              if (!hasReturnOutput) {
+                setStakedAssetDistribution(asset);
+              }
+              return asset;
             }
           }
         };
 
-        parseData(ledgerInfo, depositsInfo);
+        const asset = parseData(ledgerInfo, depositsInfo);
 
         if (isDataAtPoint) {
           setLoadingMigratedLedger(false);
         } else {
           setLoadingLedger(false);
         }
+        return Promise.resolve(asset);
       };
-      getStakingLedgerAndDeposits().catch((e) => {
+      const asset = await getStakingLedgerAndDeposits().catch((e) => {
         if (isDataAtPoint) {
           setMigratedAssetDistribution({
             ring: {
@@ -339,12 +365,15 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
         // console.log(e);
         //ignore
       });
+
+      return Promise.resolve(asset);
     },
-    [apiPromise, currentBlock, selectedAccount]
+    [apiPromise, currentBlock]
   );
 
   /*Get staking ledger and deposits. The data that comes back from the server needs a lot of decoding */
   useEffect(() => {
+    /* get new balance for every newly selected account */
     if (selectedAccount) {
       getAccountAsset(selectedAccount);
     }
@@ -358,6 +387,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
   );
 
   return {
+    getAccountAsset,
     isLoadingLedger,
     stakedAssetDistribution,
     isLoadingMigratedLedger,

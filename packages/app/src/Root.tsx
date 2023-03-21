@@ -18,6 +18,7 @@ const Root = () => {
     walletConfig,
     setMultisig,
     isLoadingBalance,
+    isLoadingMultisigBalance,
   } = useWallet();
   const { isLoadingLedger, isLoadingMigratedLedger } = useStorage();
   const [loading, setLoading] = useState<boolean | undefined>(false);
@@ -31,7 +32,8 @@ const Root = () => {
         isLoadingTransaction ||
         isLoadingLedger ||
         isLoadingMigratedLedger ||
-        isLoadingBalance
+        isLoadingBalance ||
+        isLoadingMultisigBalance
     );
   }, [
     isRequestingWalletConnection,
@@ -40,6 +42,7 @@ const Root = () => {
     isLoadingLedger,
     isLoadingMigratedLedger,
     isLoadingBalance,
+    isLoadingMultisigBalance,
   ]);
 
   const redirect = useCallback(() => {

@@ -7,6 +7,8 @@ import helpIcon from "../../assets/images/help.svg";
 import ktonIcon from "../../assets/images/kton.svg";
 import { useWallet } from "@darwinia/app-providers";
 import { AssetDistribution } from "@darwinia/app-types";
+import crabIcon from "../../assets/images/crab.svg";
+import cktonIcon from "../../assets/images/ckton.svg";
 
 interface Props {
   asset: AssetDistribution | undefined;
@@ -15,6 +17,10 @@ interface Props {
 const TokensBalanceSummary = ({ asset: assetDistribution }: Props) => {
   const { selectedNetwork } = useWallet();
   const { t } = useAppTranslation();
+
+  const ringTokenIcon = selectedNetwork?.name === "Crab" ? crabIcon : ringIcon;
+  const ktonTokenIcon = selectedNetwork?.name === "Crab" ? cktonIcon : ktonIcon;
+
   return (
     <>
       <div className={"flex flex-col lg:flex-row gap-[20px]"}>
@@ -22,7 +28,7 @@ const TokensBalanceSummary = ({ asset: assetDistribution }: Props) => {
           <div className={"flex pb-[20px] divider border-b"}>
             <div className={"flex flex-1 gap-[5px] justify-between items-center"}>
               <div className={"flex items-center gap-[5px]"}>
-                <img className={"w-[30px] shrink-0"} src={ringIcon} alt={"image"} />
+                <img className={"w-[30px] shrink-0"} src={ringTokenIcon} alt={"image"} />
                 <div className={"text-18-bold"}>{selectedNetwork?.ring.symbol.toUpperCase()}</div>
               </div>
             </div>
@@ -108,7 +114,7 @@ const TokensBalanceSummary = ({ asset: assetDistribution }: Props) => {
           <div className={"flex pb-[20px] divider border-b"}>
             <div className={"flex flex-1 gap-[5px] justify-between items-center"}>
               <div className={"flex items-center gap-[5px]"}>
-                <img className={"w-[30px] shrink-0"} src={ktonIcon} alt={"image"} />
+                <img className={"w-[30px] shrink-0"} src={ktonTokenIcon} alt={"image"} />
                 <div className={"text-18-bold"}>{selectedNetwork?.kton.symbol.toUpperCase()}</div>
               </div>
             </div>

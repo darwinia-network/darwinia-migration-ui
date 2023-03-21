@@ -6,6 +6,7 @@ export type SupportedBrowser = "Chrome" | "Firefox" | "Brave" | "Edge" | "Opera"
 export type ChainName = "Crab" | "Pangolin" | "Darwinia" | "Pangoro";
 import { Struct } from "@polkadot/types";
 import { ContractInterface } from "@ethersproject/contracts";
+import { ApiPromise } from "@polkadot/api";
 
 export interface Token {
   name?: string;
@@ -98,6 +99,11 @@ export interface WalletCtx {
     threshold: number,
     name?: string
   ) => Promise<MultisigAccount | undefined>;
+  getAccountBalance: (account: string) => Promise<AssetBalance>;
+  apiPromise: ApiPromise | undefined;
+  currentBlock: CurrentBlock | undefined;
+  isLoadingMultisigBalance: boolean | undefined;
+  setLoadingMultisigBalance: (isLoading: boolean) => void;
 }
 
 export interface SpVersionRuntimeVersion extends Struct {
@@ -113,4 +119,9 @@ export interface MultisigAccountMeta {
 export interface MultisigAccount {
   address: string;
   meta: MultisigAccountMeta;
+}
+
+export interface CurrentBlock {
+  number: number;
+  timestamp: number;
 }

@@ -10,7 +10,14 @@ import { CustomInjectedAccountWithMeta, MultisigAccount } from "@darwinia/app-ty
 import noDataIcon from "../../assets/images/no-data.svg";
 import helpIcon from "../../assets/images/help.svg";
 import trashIcon from "../../assets/images/trash-bin.svg";
-import { getStore, isSubstrateAddress, isValidNumber, prettifyNumber, setStore } from "@darwinia/app-utils";
+import {
+  convertToSS58,
+  getStore,
+  isSubstrateAddress,
+  isValidNumber,
+  prettifyNumber,
+  setStore,
+} from "@darwinia/app-utils";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface Asset {
@@ -21,6 +28,7 @@ interface Asset {
 interface MultisigAccountData {
   id: string;
   address: string;
+  formattedAddress: string;
   name: string;
   who: string[];
   asset: Asset;
@@ -28,7 +36,16 @@ interface MultisigAccountData {
 }
 
 const MultisigMigrationProcess = () => {
-  const { selectedAccount, injectedAccounts, checkDarwiniaOneMultisigAccount, selectedNetwork } = useWallet();
+  const {
+    selectedAccount,
+    injectedAccounts,
+    checkDarwiniaOneMultisigAccount,
+    selectedNetwork,
+    getAccountBalance,
+    apiPromise,
+    currentBlock,
+    setLoadingMultisigBalance,
+  } = useWallet();
   const { migrationAssetDistribution, isLoadingLedger } = useStorage();
   const { t } = useAppTranslation();
   const navigate = useNavigate();
@@ -52,6 +69,7 @@ const MultisigMigrationProcess = () => {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [isCheckingAccountExistence, setCheckingAccountExistence] = useState<boolean>(false);
   const [multisigAccountsList, setMultisigAccountsList] = useState<MultisigAccountData[]>([]);
+  const isInitializingLocalAccountsRef = useRef<boolean>(true);
 
   const columns: Column<MultisigAccountData>[] = [
     {
@@ -81,7 +99,7 @@ const MultisigMigrationProcess = () => {
       render: (row) => {
         return (
           <div className={"flex flex-ellipsis"}>
-            <div>{row.address}</div>
+            <div>{row.formattedAddress}</div>
           </div>
         );
       },
@@ -148,31 +166,45 @@ const MultisigMigrationProcess = () => {
     [location]
   );
 
-  const prepareMultisigAccountData = (accountList: MultisigAccount[]) => {
+  const prepareMultisigAccountData = async (accountList: MultisigAccount[]): Promise<MultisigAccountData[]> => {
+    setLoadingMultisigBalance(true);
     const data: MultisigAccountData[] = [];
     for (let i = 0; i < accountList.length; i++) {
       const accountItem = accountList[i];
+      const formattedAddress = convertToSS58(accountItem.address, selectedNetwork?.prefix ?? 18);
+      const balance = await getAccountBalance(formattedAddress);
       const item: MultisigAccountData = {
         id: accountItem.address,
         address: accountItem.address,
+        formattedAddress: formattedAddress,
         name: accountItem.meta.name,
         asset: {
-          ring: BigNumber(0),
-          kton: BigNumber(0),
+          ring: balance.ring,
+          kton: balance.kton,
         },
         who: [...accountItem.meta.who],
         threshold: accountItem.meta.threshold,
       };
       data.push(item);
     }
-    return data;
+    setLoadingMultisigBalance(false);
+    return Promise.resolve(data);
   };
 
   useEffect(() => {
-    const multisigAccounts: MultisigAccount[] = getStore("multisigAccounts") ?? [];
-    const data = prepareMultisigAccountData(multisigAccounts);
-    setMultisigAccountsList(data);
-  }, []);
+    if (!apiPromise || !currentBlock || !isInitializingLocalAccountsRef.current) {
+      return;
+    }
+    isInitializingLocalAccountsRef.current = false;
+    const initData = async () => {
+      const multisigAccounts: MultisigAccount[] = getStore("multisigAccounts") ?? [];
+      const data = await prepareMultisigAccountData(multisigAccounts);
+      setMultisigAccountsList(data);
+    };
+    initData().catch((e) => {
+      console.log(e);
+    });
+  }, [apiPromise, currentBlock]);
 
   useEffect(() => {
     if (currentAccount.current?.address !== selectedAccount?.address) {
@@ -254,7 +286,7 @@ const MultisigMigrationProcess = () => {
       const filteredAccounts = multisigAccounts.filter((account) => account.address !== account.address);
       filteredAccounts.push(account);
       setStore("multisigAccounts", filteredAccounts);
-      const data = prepareMultisigAccountData([account]);
+      const data = await prepareMultisigAccountData([account]);
       setMultisigAccountsList((old) => {
         return [...old, ...data];
       });

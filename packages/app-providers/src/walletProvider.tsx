@@ -12,6 +12,11 @@ import {
   PalletVestingVestingInfo,
   DarwiniaAccountMigrationAssetAccount,
   MultisigAccount,
+  DarwiniaStakingLedgerEncoded,
+  DepositEncoded,
+  Deposit,
+  DarwiniaStakingLedger,
+  AssetDistribution,
 } from "@darwinia/app-types";
 import { ApiPromise, WsProvider, SubmittableResult } from "@polkadot/api";
 import { web3Accounts, web3Enable } from "@polkadot/extension-dapp";
@@ -24,6 +29,8 @@ import { FrameSystemAccountInfo } from "@darwinia/api-derive/accounts/types";
 import { UnSubscription } from "./storageProvider";
 import { Option, Vec } from "@polkadot/types";
 import { convertToSS58, setStore, getStore, createMultiSigAccount } from "@darwinia/app-utils";
+import useBlock from "./hooks/useBlock";
+import useLedger from "./hooks/useLedger";
 
 /*This is just a blueprint, no value will be stored in here*/
 const initialState: WalletCtx = {
@@ -41,6 +48,10 @@ const initialState: WalletCtx = {
   walletConfig: undefined,
   isMultisig: undefined,
   isLoadingBalance: undefined,
+  apiPromise: undefined,
+  currentBlock: undefined,
+  isLoadingMultisigBalance: undefined,
+  setLoadingMultisigBalance: (isLoading: boolean) => {},
   changeSelectedNetwork: () => {
     // do nothing
   },
@@ -66,6 +77,12 @@ const initialState: WalletCtx = {
   checkDarwiniaOneMultisigAccount: (signatories: string[], threshold: number, name?: string) => {
     return Promise.resolve(undefined);
   },
+  getAccountBalance: (account: string) => {
+    return Promise.resolve({
+      ring: BigNumber(0),
+      kton: BigNumber(0),
+    });
+  },
 };
 
 const WalletContext = createContext<WalletCtx>(initialState);
@@ -83,6 +100,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [walletConfig, setWalletConfig] = useState<WalletConfig>();
   const [isLoadingTransaction, setLoadingTransaction] = useState<boolean>(false);
   const [isLoadingBalance, setLoadingBalance] = useState<boolean>(false);
+  const isInitialLoadingBalance = useRef<boolean>(true);
   const [apiPromise, setApiPromise] = useState<ApiPromise>();
   const { getPrettyName } = useAccountPrettyName(apiPromise);
   const DARWINIA_APPS = "darwinia/apps";
@@ -90,7 +108,15 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [isAccountMigratedJustNow, setAccountMigratedJustNow] = useState<boolean>(false);
   const [specName, setSpecName] = useState<string>();
   const [isMultisig, setMultisig] = useState<boolean>(false);
+  const [isLoadingMultisigBalance, setLoadingMultisigBalance] = useState<boolean>(false);
   const [selectedWallet, _setSelectedWallet] = useState<SupportedWallet | null | undefined>();
+
+  const { currentBlock } = useBlock(apiPromise);
+  const { getAccountAsset } = useLedger({
+    apiPromise,
+    selectedAccount: selectedAccount?.formattedAddress,
+    selectedNetwork,
+  });
 
   const setSelectedWallet = useCallback((name: SupportedWallet | null | undefined) => {
     _setSelectedWallet(name);
@@ -100,6 +126,11 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   useEffect(() => {
     _setSelectedWallet(getStore("selectedWallet"));
   }, []);
+
+  //makes sure that the loading spinner shows once the wallet is connected
+  useEffect(() => {
+    setLoadingBalance(isWalletConnected);
+  }, [isWalletConnected]);
 
   useEffect(() => {
     const walletConfig = dAppSupportedWallets.find((walletConfig) => walletConfig.name === selectedWallet);
@@ -130,72 +161,29 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   const getAccountBalance = useCallback(
     async (accountAddress: string): Promise<AssetBalance> => {
-      if (!apiPromise) {
+      if (!apiPromise || !currentBlock) {
         return Promise.resolve({
           ring: BigNumber(0),
           kton: BigNumber(0),
         });
       }
-
-      let transferableKTON = BigNumber(0);
-      const ktonAccountInfo: Option<DarwiniaAccountMigrationAssetAccount> =
-        (await apiPromise.query.accountMigration.ktonAccounts(
-          accountAddress
-        )) as unknown as Option<DarwiniaAccountMigrationAssetAccount>;
-      if (ktonAccountInfo.isSome) {
-        const unwrappedKTONAccount = ktonAccountInfo.unwrap();
-        const decodedKTONAccount = unwrappedKTONAccount.toHuman() as unknown as DarwiniaAccountMigrationAssetAccount;
-        const ktonBalanceString = decodedKTONAccount.balance.toString().replaceAll(",", "");
-        transferableKTON = BigNumber(ktonBalanceString);
-      }
-
-      /*We don't need to listen to account changes since the chain won't be producing blocks
-       * by that time */
-      const response = await apiPromise.query.accountMigration.accounts(accountAddress);
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const accountInfoOption = response as unknown as Option<FrameSystemAccountInfo>;
-      if (accountInfoOption.isSome) {
-        let vestedAmountRing = BigNumber(0);
-        let totalBalance = BigNumber(0);
-
-        const unwrappedAccountInfo = accountInfoOption.unwrap();
-        const accountInfo = unwrappedAccountInfo.toHuman() as unknown as FrameSystemAccountInfo;
-        const balance = accountInfo.data.free.toString().replaceAll(",", "");
-        totalBalance = BigNumber(balance);
-
-        const vestingInfoOption = (await apiPromise.query.accountMigration.vestings(
-          accountAddress
-        )) as unknown as Option<Vec<PalletVestingVestingInfo>>;
-        if (vestingInfoOption.isSome) {
-          const unwrappedVestingInfo = vestingInfoOption.unwrap();
-          const vestingInfoList = unwrappedVestingInfo.toHuman() as unknown as Vec<PalletVestingVestingInfo>;
-          vestingInfoList.forEach((vesting) => {
-            const lockedAmount = vesting.locked.toString().replaceAll(",", "");
-            vestedAmountRing = vestedAmountRing.plus(lockedAmount);
-          });
-        }
-
-        return Promise.resolve({
-          ring: totalBalance.minus(vestedAmountRing), // this is the transferable amount
-          kton: transferableKTON,
-        });
-      }
-
+      const asset = await getAccountAsset(accountAddress, undefined, true, false);
       return Promise.resolve({
-        ring: BigNumber(0),
-        kton: BigNumber(0),
+        ring: asset?.ring.transferable ?? BigNumber(0),
+        kton: asset?.kton.transferable ?? BigNumber(0),
       });
     },
-    [apiPromise]
+    [apiPromise, currentBlock]
   );
 
   useEffect(() => {
     const parseAccounts = async () => {
-      if (!apiPromise) {
-        // don't query account balances if you're on multisig account migration
-        setLoadingBalance(false);
+      if (!apiPromise || !currentBlock || !isInitialLoadingBalance.current) {
+        // this makes sure that the balance is queried only once
         return;
+      }
+      if (isInitialLoadingBalance.current) {
+        isInitialLoadingBalance.current = false;
       }
       setLoadingBalance(true);
       const customAccounts: CustomInjectedAccountWithMeta[] = [];
@@ -203,27 +191,40 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       const accounts = injectedAccountsRef.current;
       for (let i = 0; i < accounts.length; i++) {
         const prettyName = isMultisig ? "" : await getPrettyName(accounts[i].address);
+        const formattedAddress = convertToSS58(accounts[i].address, selectedNetwork?.prefix ?? 18);
+        /* set all the injected accounts balance to zero if we are in the multisig account mode
+         * since these accounts won't be shown to the user */
+
+        const defaultAsset = {
+          ring: BigNumber(0),
+          kton: BigNumber(0),
+        };
         const balance = isMultisig
           ? {
-              ring: BigNumber(0),
-              kton: BigNumber(0),
+              ...defaultAsset,
             }
-          : await getAccountBalance(accounts[i].address);
+          : await getAccountAsset(formattedAddress, undefined, true, false);
+        const normalAccountAsset = balance as AssetDistribution;
         customAccounts.push({
           ...accounts[i],
           prettyName,
-          balance: balance,
-          formattedAddress: convertToSS58(accounts[i].address, selectedNetwork?.prefix ?? 18),
+          balance: isMultisig
+            ? { ...defaultAsset }
+            : { ring: normalAccountAsset.ring.transferable, kton: normalAccountAsset.kton.transferable },
+          formattedAddress: formattedAddress,
         });
       }
 
       /* Force adding an address if there is an account address that was set from the URL */
       if (forcedAccountAddress.current) {
         const prettyName = await getPrettyName(forcedAccountAddress.current);
-        const balance = await getAccountBalance(forcedAccountAddress.current);
+        const balance = await getAccountAsset(forcedAccountAddress.current);
         customAccounts.unshift({
           prettyName,
-          balance,
+          balance: {
+            ring: balance?.ring.transferable ?? BigNumber(0),
+            kton: balance?.kton.transferable ?? BigNumber(0),
+          },
           type: "sr25519",
           address: forcedAccountAddress.current,
           meta: { source: "" },
@@ -241,7 +242,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       setLoadingBalance(false);
       //ignore
     });
-  }, [injectedAccountsRef.current, apiPromise, selectedNetwork, isMultisig]);
+  }, [injectedAccountsRef.current, apiPromise, selectedNetwork, isMultisig, currentBlock]);
 
   /*Connect to MetaMask*/
   const connectWallet = useCallback(
@@ -458,6 +459,11 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         setMultisig,
         checkDarwiniaOneMultisigAccount,
         isLoadingBalance,
+        getAccountBalance,
+        apiPromise,
+        currentBlock,
+        isLoadingMultisigBalance,
+        setLoadingMultisigBalance,
       }}
     >
       {children}

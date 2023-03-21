@@ -29,8 +29,7 @@ export type UnSubscription = () => void;
 const StorageContext = createContext(initialState);
 
 export const StorageProvider = ({ children }: PropsWithChildren) => {
-  const { selectedNetwork, selectedAccount } = useWallet();
-  const [apiPromise, setApiPromise] = useState<ApiPromise>();
+  const { selectedNetwork, selectedAccount, apiPromise } = useWallet();
   const [isAccountFree, setAccountFree] = useState(false);
   const [multisigContract, setMultisigContract] = useState<Contract>();
 
@@ -90,35 +89,6 @@ export const StorageProvider = ({ children }: PropsWithChildren) => {
     },
     [apiPromise]
   );
-
-  const initStorageNetwork = async (rpcURL: string) => {
-    try {
-      const provider = new WsProvider(rpcURL);
-      const api = new ApiPromise({
-        provider,
-      });
-
-      api.on("connected", async () => {
-        const readyAPI = await api.isReady;
-        setApiPromise(readyAPI);
-      });
-      api.on("disconnected", () => {
-        // console.log("disconnected");
-      });
-      api.on("error", () => {
-        // console.log("error");
-      });
-    } catch (e) {
-      //ignore
-    }
-  };
-
-  useEffect(() => {
-    if (!selectedNetwork) {
-      return;
-    }
-    initStorageNetwork(selectedNetwork.substrate.wssURL);
-  }, [selectedNetwork]);
 
   useEffect(() => {
     if (!selectedAccount || !selectedNetwork) {
