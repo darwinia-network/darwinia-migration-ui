@@ -56,17 +56,25 @@ const Root = () => {
     }
 
     if (location.pathname === "/multisig-home") {
+      /*The user is connected to the wallet but still trying to visit the connect wallet page*/
       if (setMultisig) {
         setMultisig(true);
       }
-      navigate(`/multisig-migration${location.search}`, { replace: true });
+      const params = new URLSearchParams(location.search);
+      const redirectPath = params.get("redirect");
+      params.delete("redirect");
+      const destination = redirectPath ? redirectPath : "/multisig-migration";
+
+      navigate(`${destination}?${params.toString()}`, { replace: true });
       return;
     }
 
     /* only navigate if the user is supposed to be redirected to another URL */
-    if (location.state && location.state.from) {
-      const nextPath = location.state.from.pathname ? location.state.from.pathname : "/migration";
-      navigate(`${nextPath}${location.search}`, { replace: true });
+    const params = new URLSearchParams(location.search);
+    const redirectPath = params.get("redirect");
+    if (redirectPath) {
+      params.delete("redirect");
+      navigate(`${redirectPath}?${params.toString()}`, { replace: true });
     }
   }, [location, navigate, setMultisig]);
 

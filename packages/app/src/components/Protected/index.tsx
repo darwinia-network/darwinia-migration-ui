@@ -7,8 +7,10 @@ const Protected = ({ children }: PropsWithChildren) => {
   const location = useLocation();
   //if the user isn't connected to the wallet, redirect to the homepage
   const path = location.pathname.includes("/multisig") ? `/multisig-home` : `/`;
+  const params = `${location.search}&redirect=${location.pathname}`;
+
   if (!isWalletConnected && !isRequestingWalletConnection) {
-    return <Navigate to={`${path}${location.search}`} replace={true} state={{ from: location }} />;
+    return <Navigate to={`${path}${params}`} replace={true} />;
   }
 
   return <>{children}</>;
