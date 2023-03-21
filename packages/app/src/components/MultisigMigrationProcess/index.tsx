@@ -157,7 +157,7 @@ const MultisigMigrationProcess = () => {
   const onInitializeMigration = useCallback(
     (item: MultisigAccountData) => {
       const params = new URLSearchParams(location.search);
-      params.set("address", item.address);
+      params.set("address", item.formattedAddress);
       params.set("name", item.name);
       params.set("who", item.who.join(","));
       params.set("threshold", item.threshold.toString());

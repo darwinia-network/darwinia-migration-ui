@@ -35,6 +35,8 @@ const MultisigAccountInfo = () => {
   ]);
   const [newAccountThreshold, setNewAccountThreshold] = useState<string>("");
   const [newMultisigAccountAddress, setNewMultisigAccountAddress] = useState<string>("");
+  const [isSuccessfullyMigrated, setIsSuccessfullyMigrated] = useState<boolean>(false);
+  const [isIsWaitingToDeploy, setIsWaitingToDeploy] = useState<boolean>(false);
 
   const destinationTabs = [
     {
@@ -166,22 +168,32 @@ const MultisigAccountInfo = () => {
     });
   };
 
+  const generateShareLink = () => {
+    console.log("generate share link");
+  };
+
   return (
     <div className={"flex flex-col gap-[20px]"}>
-      <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
-        <div>{t(localeKeys.oneMoreStep)}</div>
-        <div className={"px-[5px]"}>
-          <Button>{t(localeKeys.deploy)}</Button>
+      {/*one more step to deploy*/}
+      {isIsWaitingToDeploy && (
+        <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
+          <div>{t(localeKeys.oneMoreStep)}</div>
+          <div className={"px-[5px]"}>
+            <Button>{t(localeKeys.deploy)}</Button>
+          </div>
+          <div>{t(localeKeys.toCompleteMigration)}</div>
         </div>
-        <div>{t(localeKeys.toCompleteMigration)}</div>
-      </div>
-      <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
-        <div
-          dangerouslySetInnerHTML={{
-            __html: t(localeKeys.multisigMigrationSuccessful, { link: "https://www.test.com" }),
-          }}
-        />
-      </div>
+      )}
+      {/*account migrated successfully*/}
+      {isSuccessfullyMigrated && (
+        <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
+          <div
+            dangerouslySetInnerHTML={{
+              __html: t(localeKeys.multisigMigrationSuccessful, { link: "https://www.test.com" }),
+            }}
+          />
+        </div>
+      )}
       <div className={"card"}>
         <div className={"flex flex-col"}>
           <div className={"flex justify-between items-center border-b divider pb-[20px]"}>
@@ -200,7 +212,7 @@ const MultisigAccountInfo = () => {
               </div>
               <div className={"flex items-center gap-[5px]"}>
                 <div>{address}</div>
-                <img className={"clickable shrink-0"} src={copyIcon} alt="image" />
+                <img onClick={generateShareLink} className={"clickable shrink-0"} src={copyIcon} alt="image" />
               </div>
             </div>
             <Button onClick={onShowMigrateModal}>{t(localeKeys.migrate)}</Button>

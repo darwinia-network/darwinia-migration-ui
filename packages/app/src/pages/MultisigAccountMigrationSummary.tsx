@@ -34,6 +34,7 @@ const MultisigAccountMigrationSummary = () => {
   return (
     <div className={"flex flex-col gap-[20px]"}>
       <MultisigAccountInfo />
+      <div>SHOW BALANCE</div>
       {isAccountMigrationInitialized ? (
         <MultisigMigrationProgressTabs />
       ) : (
