@@ -172,15 +172,15 @@ const MultisigMigrationProcess = () => {
     for (let i = 0; i < accountList.length; i++) {
       const accountItem = accountList[i];
       const formattedAddress = convertToSS58(accountItem.address, selectedNetwork?.prefix ?? 18);
-      const balance = await getAccountBalance(formattedAddress);
+      const asset = await getAccountBalance(formattedAddress);
       const item: MultisigAccountData = {
         id: accountItem.address,
         address: accountItem.address,
         formattedAddress: formattedAddress,
         name: accountItem.meta.name,
         asset: {
-          ring: balance.ring,
-          kton: balance.kton,
+          ring: asset?.ring.transferable ?? BigNumber(0),
+          kton: asset?.kton.transferable ?? BigNumber(0),
         },
         who: [...accountItem.meta.who],
         threshold: accountItem.meta.threshold,

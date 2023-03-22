@@ -10,11 +10,17 @@ import JazzIcon from "../JazzIcon";
 import { Tip } from "../MigrationForm";
 import helpIcon from "../../assets/images/help.svg";
 import trashIcon from "../../assets/images/trash-bin.svg";
-import { isValidNumber, isEthereumAddress } from "@darwinia/app-utils";
+import { isValidNumber, isEthereumAddress, getPublicKey } from "@darwinia/app-utils";
+import { BigNumber as EthersBigNumber } from "ethers";
+
+interface MultisigMemberAddress {
+  address: string;
+  id: number;
+}
 
 const MultisigAccountInfo = () => {
   const { t } = useAppTranslation();
-  const { injectedAccounts } = useWallet();
+  const { injectedAccounts, multisigContract } = useWallet();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const address = params.get("address");
@@ -30,11 +36,12 @@ const MultisigAccountInfo = () => {
   const [checkedTips, setCheckedTips] = useState<Tip[]>([]);
   const { selectedNetwork, onInitMigration } = useWallet();
   const [isProcessingMigration, setProcessingMigration] = useState<boolean>(false);
-  const [memberAddresses, setMemberAddresses] = useState<{ address: string; id: number }[]>([
+  const [memberAddresses, setMemberAddresses] = useState<MultisigMemberAddress[]>([
     { id: new Date().getTime(), address: "" },
   ]);
   const [newAccountThreshold, setNewAccountThreshold] = useState<string>("");
   const [newMultisigAccountAddress, setNewMultisigAccountAddress] = useState<string>("");
+  const [isIsGeneratingMultisigAccount, setIsGeneratingMultisigAccount] = useState<boolean>(false);
   const [isSuccessfullyMigrated, setIsSuccessfullyMigrated] = useState<boolean>(false);
   const [isIsWaitingToDeploy, setIsWaitingToDeploy] = useState<boolean>(false);
 
@@ -66,10 +73,23 @@ const MultisigAccountInfo = () => {
     setAttentionModalVisibility(true);
   };
 
-  const generateMultisigAccount = () => {
-    const dummyAddress = "0xDeA37A59acB4F407980Ea347ab351697E7102ae0";
-    setNewMultisigAccountAddress(dummyAddress);
-    console.log("call the smart contract");
+  const generateMultisigAccount = async (members: MultisigMemberAddress[], address: string) => {
+    try {
+      setIsGeneratingMultisigAccount(true);
+      const publicKey = getPublicKey(address);
+      const memberAddresses = members
+        .map((item) => item.address)
+        .sort()
+        .map((item) => item);
+      const thresholdNumber = EthersBigNumber.from(threshold);
+
+      const multisigAddress = await multisigContract?.computeAddress(publicKey, memberAddresses, thresholdNumber);
+      setNewMultisigAccountAddress(multisigAddress);
+      setIsGeneratingMultisigAccount(false);
+    } catch (e) {
+      setIsGeneratingMultisigAccount(false);
+      console.log(e);
+    }
   };
 
   const onAttentionTipChecked = (checkedTip: Tip, allCheckedTips: Tip[]) => {
@@ -115,11 +135,11 @@ const MultisigAccountInfo = () => {
 
   const isContinueButtonDisabled = () => {
     if (activeDestinationTab === 1) {
-      return destinationAddress.length === 0;
+      return destinationAddress.length === 0 || isIsGeneratingMultisigAccount;
     } else {
       const isValidThreshold = isValidNumber(newAccountThreshold);
       const isValidMultisigAddress = isEthereumAddress(newMultisigAccountAddress);
-      return !isValidThreshold || !isValidMultisigAddress;
+      return !isValidThreshold || !isValidMultisigAddress || isIsGeneratingMultisigAccount;
     }
   };
 
@@ -152,8 +172,9 @@ const MultisigAccountInfo = () => {
     const members = [...memberAddresses];
     members[index].address = value;
     setMemberAddresses(() => members);
-    //TODO delete this
-    generateMultisigAccount();
+    if (address && members.length >= Number(newAccountThreshold ?? 1)) {
+      generateMultisigAccount(members, address);
+    }
   };
 
   const onAddNewMemberAddress = () => {

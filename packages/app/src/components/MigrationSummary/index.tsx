@@ -8,29 +8,51 @@ import helpIcon from "../../assets/images/help.svg";
 import { Tooltip } from "@darwinia/ui";
 import { prettifyNumber, prettifyTooltipNumber } from "@darwinia/app-utils";
 import BigNumber from "bignumber.js";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import TokensBalanceSummary from "../TokensBalanceSummary";
+import { AssetDistribution } from "@darwinia/app-types";
 
 interface Props {
-  isCheckingMigrationStatus: boolean;
+  isCheckingMigrationStatus?: boolean;
+  accountAddress?: string | null;
 }
 
-const MigrationSummary = ({ isCheckingMigrationStatus }: Props) => {
+const MigrationSummary = ({ isCheckingMigrationStatus, accountAddress }: Props) => {
   const { t } = useAppTranslation();
-  const { selectedNetwork, setTransactionStatus } = useWallet();
+  const { selectedNetwork, setTransactionStatus, getAccountBalance, apiPromise, currentBlock, isMultisig } =
+    useWallet();
   const { migrationAssetDistribution, isLoadingLedger } = useStorage();
+  const [isLoadingBalance, setLoadingBalance] = useState<boolean>(false);
+  const [multisigBalance, setMultisigBalance] = useState<AssetDistribution>();
+  const isInitializingLocalAccountsRef = useRef<boolean>(true);
 
   useEffect(() => {
-    setTransactionStatus(!!isLoadingLedger || isCheckingMigrationStatus);
-  }, [isLoadingLedger, isCheckingMigrationStatus]);
+    setTransactionStatus(!!isLoadingLedger || !!isCheckingMigrationStatus || isLoadingBalance);
+  }, [isLoadingLedger, isCheckingMigrationStatus, isLoadingBalance]);
 
-  const ringTokenIcon = selectedNetwork?.name === "Crab" ? crabIcon : ringIcon;
-  const ktonTokenIcon = selectedNetwork?.name === "Crab" ? cktonIcon : ktonIcon;
+  useEffect(() => {
+    if (!apiPromise || !currentBlock || !isInitializingLocalAccountsRef.current) {
+      return;
+    }
+    isInitializingLocalAccountsRef.current = false;
+    const initBalance = async () => {
+      if (accountAddress) {
+        setLoadingBalance(true);
+        const asset = await getAccountBalance(accountAddress);
+        setMultisigBalance(asset);
+        setLoadingBalance(false);
+      }
+    };
+    initBalance().catch((e) => {
+      console.log(e);
+      setLoadingBalance(false);
+    });
+  }, [accountAddress, apiPromise, currentBlock]);
 
   return (
     <div className={"card flex gap-[20px] flex-col"}>
-      <TokensBalanceSummary asset={migrationAssetDistribution} />
-      <div className={"text-12"}>{t(localeKeys.migrationSummaryInfo)}</div>
+      <TokensBalanceSummary asset={accountAddress ? multisigBalance : migrationAssetDistribution} />
+      {!isMultisig && <div className={"text-12"}>{t(localeKeys.migrationSummaryInfo)}</div>}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import MultisigAccountInfo from "../components/MultisigAccountInfo";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
 import MultisigMigrationProgressTabs from "../components/MultisigMigrationProgressTabs";
+import MigrationSummary from "../components/MigrationSummary";
 
 const MultisigAccountMigrationSummary = () => {
   const { t } = useAppTranslation();
@@ -34,7 +35,7 @@ const MultisigAccountMigrationSummary = () => {
   return (
     <div className={"flex flex-col gap-[20px]"}>
       <MultisigAccountInfo />
-      <div>SHOW BALANCE</div>
+      <MigrationSummary accountAddress={address} />
       {isAccountMigrationInitialized ? (
         <MultisigMigrationProgressTabs />
       ) : (

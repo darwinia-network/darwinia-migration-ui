@@ -5,8 +5,9 @@ export type SupportedWallet = "Polkadot{.js}" | "Talisman" | "SubWallet";
 export type SupportedBrowser = "Chrome" | "Firefox" | "Brave" | "Edge" | "Opera";
 export type ChainName = "Crab" | "Pangolin" | "Darwinia" | "Pangoro";
 import { Struct } from "@polkadot/types";
-import { ContractInterface } from "@ethersproject/contracts";
+import { Contract, ContractInterface } from "@ethersproject/contracts";
 import { ApiPromise } from "@polkadot/api";
+import { AssetDistribution } from "../dist";
 
 export interface Token {
   name?: string;
@@ -99,11 +100,12 @@ export interface WalletCtx {
     threshold: number,
     name?: string
   ) => Promise<MultisigAccount | undefined>;
-  getAccountBalance: (account: string) => Promise<AssetBalance>;
+  getAccountBalance: (account: string) => Promise<AssetDistribution | undefined>;
   apiPromise: ApiPromise | undefined;
   currentBlock: CurrentBlock | undefined;
   isLoadingMultisigBalance: boolean | undefined;
   setLoadingMultisigBalance: (isLoading: boolean) => void;
+  multisigContract: Contract | undefined;
 }
 
 export interface SpVersionRuntimeVersion extends Struct {

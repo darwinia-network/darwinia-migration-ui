@@ -31,6 +31,7 @@ import { Option, Vec } from "@polkadot/types";
 import { convertToSS58, setStore, getStore, createMultiSigAccount } from "@darwinia/app-utils";
 import useBlock from "./hooks/useBlock";
 import useLedger from "./hooks/useLedger";
+import { Contract, ethers } from "ethers";
 
 /*This is just a blueprint, no value will be stored in here*/
 const initialState: WalletCtx = {
@@ -51,6 +52,7 @@ const initialState: WalletCtx = {
   apiPromise: undefined,
   currentBlock: undefined,
   isLoadingMultisigBalance: undefined,
+  multisigContract: undefined,
   setLoadingMultisigBalance: (isLoading: boolean) => {},
   changeSelectedNetwork: () => {
     // do nothing
@@ -78,10 +80,7 @@ const initialState: WalletCtx = {
     return Promise.resolve(undefined);
   },
   getAccountBalance: (account: string) => {
-    return Promise.resolve({
-      ring: BigNumber(0),
-      kton: BigNumber(0),
-    });
+    return Promise.resolve(undefined);
   },
 };
 
@@ -110,6 +109,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [isMultisig, setMultisig] = useState<boolean>(false);
   const [isLoadingMultisigBalance, setLoadingMultisigBalance] = useState<boolean>(false);
   const [selectedWallet, _setSelectedWallet] = useState<SupportedWallet | null | undefined>();
+  const [multisigContract, setMultisigContract] = useState<Contract>();
 
   const { currentBlock } = useBlock(apiPromise);
   const { getAccountAsset } = useLedger({
@@ -154,23 +154,70 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     }
   }, [selectedNetwork]);
 
+  /*This will be fired once the connection to the wallet is successful*/
+  useEffect(() => {
+    if (!selectedAccount || !selectedNetwork) {
+      return;
+    }
+    //refresh the page with the newly selected account
+    const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+    const newSigner = newProvider.getSigner();
+    const multisigContract = new ethers.Contract(
+      selectedNetwork.contractAddresses.multisig,
+      selectedNetwork.contractInterface.multisig,
+      newSigner
+    );
+
+    setMultisigContract(multisigContract);
+  }, [selectedAccount, selectedNetwork]);
+
   const disconnectWallet = useCallback(() => {
     setSelectedAccount(undefined);
     setWalletConnected(false);
   }, []);
 
   const getAccountBalance = useCallback(
-    async (accountAddress: string): Promise<AssetBalance> => {
+    async (accountAddress: string): Promise<AssetDistribution> => {
       if (!apiPromise || !currentBlock) {
         return Promise.resolve({
-          ring: BigNumber(0),
-          kton: BigNumber(0),
+          ring: {
+            transferable: BigNumber(0),
+            deposit: BigNumber(0),
+            bonded: BigNumber(0),
+            unbonded: BigNumber(0),
+            unbonding: BigNumber(0),
+            vested: BigNumber(0),
+          },
+          kton: {
+            transferable: BigNumber(0),
+            bonded: BigNumber(0),
+            unbonded: BigNumber(0),
+            unbonding: BigNumber(0),
+          },
         });
       }
       const asset = await getAccountAsset(accountAddress, undefined, true, false);
+      if (!asset) {
+        return Promise.resolve({
+          ring: {
+            transferable: BigNumber(0),
+            deposit: BigNumber(0),
+            bonded: BigNumber(0),
+            unbonded: BigNumber(0),
+            unbonding: BigNumber(0),
+            vested: BigNumber(0),
+          },
+          kton: {
+            transferable: BigNumber(0),
+            bonded: BigNumber(0),
+            unbonded: BigNumber(0),
+            unbonding: BigNumber(0),
+          },
+        });
+      }
+
       return Promise.resolve({
-        ring: asset?.ring.transferable ?? BigNumber(0),
-        kton: asset?.kton.transferable ?? BigNumber(0),
+        ...asset,
       });
     },
     [apiPromise, currentBlock]
@@ -464,6 +511,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         currentBlock,
         isLoadingMultisigBalance,
         setLoadingMultisigBalance,
+        multisigContract,
       }}
     >
       {children}

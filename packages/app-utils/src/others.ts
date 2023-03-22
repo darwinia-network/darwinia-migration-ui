@@ -2,7 +2,8 @@ import { Storage } from "@darwinia/app-types";
 import { STORAGE as APP_STORAGE } from "@darwinia/app-config";
 import BigNumber from "bignumber.js";
 import { ethers, utils } from "ethers";
-import { encodeAddress, createKeyMulti, sortAddresses, isAddress } from "@polkadot/util-crypto";
+import { encodeAddress, createKeyMulti, sortAddresses, isAddress, decodeAddress } from "@polkadot/util-crypto";
+import { u8aToHex } from "@polkadot/util";
 
 export const setStore = (key: keyof Storage, value: unknown) => {
   try {
@@ -132,4 +133,9 @@ export const createMultiSigAccount = (addresses: string[], prefix: number, thres
 
 export const isSubstrateAddress = (address: string) => {
   return isAddress(address);
+};
+
+export const getPublicKey = (accountAddress: string) => {
+  const publicKeyArray = decodeAddress(accountAddress);
+  return u8aToHex(publicKeyArray);
 };

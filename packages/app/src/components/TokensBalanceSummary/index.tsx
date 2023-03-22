@@ -79,9 +79,9 @@ const TokensBalanceSummary = ({ asset: assetDistribution }: Props) => {
             <div className={"flex justify-between"}>
               <div className={"flex items-center gap-[5px]"}>
                 <div>{t(localeKeys.unbonding)}</div>
-                <Tooltip message={<div>Ubonding Message</div>}>
+                {/*<Tooltip message={<div>Ubonding Message</div>}>
                   <img className={"w-[11px]"} src={helpIcon} alt="image" />
-                </Tooltip>
+                </Tooltip>*/}
               </div>
               <div>
                 <Tooltip
@@ -96,9 +96,9 @@ const TokensBalanceSummary = ({ asset: assetDistribution }: Props) => {
             <div className={"flex justify-between"}>
               <div className={"flex items-center gap-[5px]"}>
                 <div>{t(localeKeys.vested)}</div>
-                <Tooltip message={<div>Vested Message</div>}>
+                {/*<Tooltip message={<div>Vested Message</div>}>
                   <img className={"w-[11px]"} src={helpIcon} alt="image" />
-                </Tooltip>
+                </Tooltip>*/}
               </div>
               <div>
                 <Tooltip message={<div>{prettifyTooltipNumber(assetDistribution?.ring.vested ?? BigNumber(0))}</div>}>
@@ -155,9 +155,9 @@ const TokensBalanceSummary = ({ asset: assetDistribution }: Props) => {
             <div className={"flex justify-between"}>
               <div className={"flex items-center gap-[5px]"}>
                 <div>{t(localeKeys.unbonding)}</div>
-                <Tooltip message={<div>Ubonding Message</div>}>
+                {/*<Tooltip message={<div>Ubonding Message</div>}>
                   <img className={"w-[11px]"} src={helpIcon} alt="image" />
-                </Tooltip>
+                </Tooltip>*/}
               </div>
               <div>
                 <Tooltip
