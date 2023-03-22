@@ -241,7 +241,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
     const injecteds = window.injectedWeb3;
     const source = injecteds && walletCfg.sources.find((source) => injecteds[source]);
-    if (!source) {
+    if (!source && name !== 'NovaWallet') {
       setWalletConnected(false);
       setRequestingWalletConnection(false);
       setLoadingTransaction(false);
@@ -282,7 +282,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
           accounts = unfilteredAccounts
             .filter((account) => !account.address.startsWith("0x"));
         }
-      } else {
+      } else if (source) {
         const wallet = injecteds[source];
         if (!wallet.enable) {
           return;
