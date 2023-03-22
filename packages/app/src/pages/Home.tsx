@@ -24,7 +24,7 @@ const Home = () => {
           }}
         />
       </div>
-      <div className={"flex flex-1 bg-blackSecondary items-center justify-center gap-5"}>
+      <div className={"flex flex-1 flex-col lg:flex-row bg-blackSecondary items-center justify-center gap-5 py-5"}>
         {dAppSupportedWallets.map(({ name, logo, sources }, index) => {
           const selected = name === walletConfig?.name;
           const injecteds = window.injectedWeb3;
@@ -32,7 +32,7 @@ const Home = () => {
 
           return (
             <button
-              className={`flex flex-col gap-[10px] items-center justify-center w-[200px] h-[210px] border transition-colors duration-300 ${
+              className={`flex flex-col gap-[10px] items-center justify-center w-[200px] h-[120px] lg:h-[210px] border transition-colors duration-300 ${
                 !installed ? "bg-white/20" : "hover:border-primary"
               } ${selected ? "border-primary" : "border-white/20"}`}
               key={index}
