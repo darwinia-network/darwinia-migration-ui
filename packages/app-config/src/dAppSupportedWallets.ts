@@ -1,6 +1,7 @@
 import polkadotJSExtensionLogo from "./assets/images/wallets/polkadot-js.svg";
 import talismanJSExtensionLogo from "./assets/images/wallets/talisman.svg";
 import subwalletJSExtensionLogo from "./assets/images/wallets/subwallet-js.svg";
+import novaWalletLogo from "./assets/images/wallets/novawallet.png";
 import { WalletConfig } from "@darwinia/app-types";
 
 export const dAppSupportedWallets: WalletConfig[] = [
@@ -72,5 +73,11 @@ export const dAppSupportedWallets: WalletConfig[] = [
       },
     ],
     sources: ['subwallet-js', '"subwallet-js"']
+  },
+  {
+    name: "NovaWallet",
+    logo: novaWalletLogo,
+    extensions: [],
+    sources: [],
   },
 ];

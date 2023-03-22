@@ -1,12 +1,12 @@
 import { useAppTranslation, localeKeys } from "@darwinia/app-locale";
-import { useWallet } from "@darwinia/app-providers";
+import { useWallet, useMobile } from "@darwinia/app-providers";
 import migrationIcon from "../assets/images/migration.svg";
 import { dAppSupportedWallets } from "@darwinia/app-config";
-import { isMobile } from "@darwinia/app-utils";
 
 const Home = () => {
   const { t } = useAppTranslation();
   const { connectWallet, selectedNetwork, walletConfig } = useWallet();
+  const { isMobile } = useMobile();
 
   return (
     <div className={"flex flex-1 flex-col gap-[20px]"}>
@@ -26,10 +26,10 @@ const Home = () => {
         />
       </div>
       <div className={"flex flex-1 flex-col lg:flex-row bg-blackSecondary items-center justify-center gap-5 py-5"}>
-        {isMobile() ? (
+        {isMobile ? (
           <button
             className="flex items-center justify-center border border-primary transition duration-300 hover:opacity-60 w-3/4 py-10"
-            onClick={() => connectWallet("Polkadot{.js}")}
+            onClick={() => connectWallet("NovaWallet")}
           >
             {t(localeKeys.connectWallet)}
           </button>

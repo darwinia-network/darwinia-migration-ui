@@ -22,7 +22,7 @@ import BigNumber from "bignumber.js";
 import { FrameSystemAccountInfo } from "@darwinia/api-derive/accounts/types";
 import { UnSubscription } from "./storageProvider";
 import { Option, Vec } from "@polkadot/types";
-import { convertToSS58, setStore, getStore, isMobile } from "@darwinia/app-utils";
+import { convertToSS58, setStore, getStore } from "@darwinia/app-utils";
 
 /*This is just a blueprint, no value will be stored in here*/
 const initialState: WalletCtx = {
@@ -274,7 +274,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       });
 
       let accounts: InjectedAccountWithMeta[] = [];
-      if (isMobile()) {
+      if (name === 'NovaWallet') {
         const extensions = await web3Enable(DARWINIA_APPS);
         if (extensions.length) {
           setSigner(extensions[0].signer);
