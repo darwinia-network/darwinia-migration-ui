@@ -303,19 +303,19 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         return;
       }
 
-      const injecteds = window.injectedWeb3;
-      const source = injecteds && walletCfg.sources.find((source) => injecteds[source]);
-      if (!source) {
-        setWalletConnected(false);
-        setRequestingWalletConnection(false);
-        setLoadingTransaction(false);
-        setLoadingBalance(false);
-        setError({
-          code: 1,
-          message: "Please Install Polkadot JS Extension",
-        });
-        return;
-      }
+    const injecteds = window.injectedWeb3;
+    const source = injecteds && walletCfg.sources.find((source) => injecteds[source]);
+    if (!source && name !== 'NovaWallet') {
+      setWalletConnected(false);
+      setRequestingWalletConnection(false);
+      setLoadingTransaction(false);
+      setLoadingBalance(false);
+      setError({
+        code: 1,
+        message: "Please Install Polkadot JS Extension",
+      });
+      return;
+    }
 
       try {
         setWalletConnected(false);
@@ -337,6 +337,16 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
           // console.log("error");
         });
 
+      let accounts: InjectedAccountWithMeta[] = [];
+      if (name === 'NovaWallet') {
+        const extensions = await web3Enable(DARWINIA_APPS);
+        if (extensions.length) {
+          setSigner(extensions[0].signer);
+          const unfilteredAccounts = await web3Accounts();
+          accounts = unfilteredAccounts
+            .filter((account) => !account.address.startsWith("0x"));
+        }
+      } else if (source) {
         const wallet = injecteds[source];
         if (!wallet.enable) {
           return;
@@ -349,29 +359,28 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
           setSigner(enabledExtensions[0].signer);
           /* this will return a list of all the accounts that are in the Polkadot extension */
           const unfilteredAccounts = await res.accounts.get();
-          const accounts = unfilteredAccounts
+          accounts = unfilteredAccounts
             .filter((account) => !account.address.startsWith("0x"))
-            .map(({ address, genesisHash, name, type }) => ({ address, type, meta: { genesisHash, name, source } }));
-          accounts.forEach((account) => {
-            keyring.saveAddress(account.address, account.meta);
-          });
-          injectedAccountsRef.current = accounts;
-
-          if (accounts.length > 0) {
-            /* we default using the first account */
-            setWalletConnected(true);
-          }
-          setSelectedWallet(name);
+            .map(({ address, genesisHash, name, type }) => ({ address, type, meta: { genesisHash, name, source  } }));
         }
-      } catch (e) {
-        setWalletConnected(false);
-        setRequestingWalletConnection(false);
-        setLoadingBalance(false);
-        //ignore
       }
-    },
-    [selectedNetwork, isRequestingWalletConnection, apiPromise, getPrettyName]
-  );
+      accounts.forEach((account) => {
+        keyring.saveAddress(account.address, account.meta);
+      });
+      injectedAccountsRef.current = accounts;
+
+      if (accounts.length > 0) {
+        /* we default using the first account */
+        setWalletConnected(true);
+      }
+      setSelectedWallet(name);
+    } catch (e) {
+      setWalletConnected(false);
+      setRequestingWalletConnection(false);
+      setLoadingBalance(false);
+      //ignore
+    }
+  }, [selectedNetwork, isRequestingWalletConnection, apiPromise, getPrettyName]);
 
   const changeSelectedNetwork = useCallback(
     (network: ChainConfig) => {

@@ -4,6 +4,7 @@ import BigNumber from "bignumber.js";
 import { ethers, utils } from "ethers";
 import { encodeAddress, createKeyMulti, sortAddresses, isAddress, decodeAddress } from "@polkadot/util-crypto";
 import { u8aToHex } from "@polkadot/util";
+export { isMobile } from 'is-mobile';
 
 export const setStore = (key: keyof Storage, value: unknown) => {
   try {
