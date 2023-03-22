@@ -3,6 +3,7 @@ import { STORAGE as APP_STORAGE } from "@darwinia/app-config";
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { encodeAddress } from "@polkadot/util-crypto";
+export { isMobile } from 'is-mobile';
 
 export const setStore = (key: keyof Storage, value: unknown) => {
   try {
