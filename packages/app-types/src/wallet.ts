@@ -1,7 +1,7 @@
 import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { AssetBalance } from "./storage";
 
-export type SupportedWallet = "Polkadot{.js}" | "Talisman" | "SubWallet";
+export type SupportedWallet = "Polkadot{.js}" | "Talisman" | "SubWallet" | "NovaWallet";
 export type SupportedBrowser = "Chrome" | "Firefox" | "Brave" | "Edge" | "Opera";
 export type ChainName = "Crab" | "Pangolin" | "Darwinia" | "Pangoro";
 import { Struct } from "@polkadot/types";

@@ -241,7 +241,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
     const injecteds = window.injectedWeb3;
     const source = injecteds && walletCfg.sources.find((source) => injecteds[source]);
-    if (!source) {
+    if (!source && name !== 'NovaWallet') {
       setWalletConnected(false);
       setRequestingWalletConnection(false);
       setLoadingTransaction(false);
@@ -273,32 +273,43 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         // console.log("error");
       });
 
-      const wallet = injecteds[source];
-      if (!wallet.enable) {
-        return;
-      }
-      const res = await wallet.enable(DARWINIA_APPS);
-      if (res) {
-        const enabledExtensions = [res];
-
-        /* this is the signer that needs to be used when we sign a transaction */
-        setSigner(enabledExtensions[0].signer);
-        /* this will return a list of all the accounts that are in the Polkadot extension */
-        const unfilteredAccounts = await res.accounts.get();
-        const accounts = unfilteredAccounts
-          .filter((account) => !account.address.startsWith("0x"))
-          .map(({ address, genesisHash, name, type }) => ({ address, type, meta: { genesisHash, name, source  } }));
-        accounts.forEach((account) => {
-          keyring.saveAddress(account.address, account.meta);
-        });
-        injectedAccountsRef.current = accounts;
-
-        if (accounts.length > 0) {
-          /* we default using the first account */
-          setWalletConnected(true);
+      let accounts: InjectedAccountWithMeta[] = [];
+      if (name === 'NovaWallet') {
+        const extensions = await web3Enable(DARWINIA_APPS);
+        if (extensions.length) {
+          setSigner(extensions[0].signer);
+          const unfilteredAccounts = await web3Accounts();
+          accounts = unfilteredAccounts
+            .filter((account) => !account.address.startsWith("0x"));
         }
-        setSelectedWallet(name);
+      } else if (source) {
+        const wallet = injecteds[source];
+        if (!wallet.enable) {
+          return;
+        }
+        const res = await wallet.enable(DARWINIA_APPS);
+        if (res) {
+          const enabledExtensions = [res];
+  
+          /* this is the signer that needs to be used when we sign a transaction */
+          setSigner(enabledExtensions[0].signer);
+          /* this will return a list of all the accounts that are in the Polkadot extension */
+          const unfilteredAccounts = await res.accounts.get();
+          accounts = unfilteredAccounts
+            .filter((account) => !account.address.startsWith("0x"))
+            .map(({ address, genesisHash, name, type }) => ({ address, type, meta: { genesisHash, name, source  } }));
+        }
       }
+      accounts.forEach((account) => {
+        keyring.saveAddress(account.address, account.meta);
+      });
+      injectedAccountsRef.current = accounts;
+
+      if (accounts.length > 0) {
+        /* we default using the first account */
+        setWalletConnected(true);
+      }
+      setSelectedWallet(name);
     } catch (e) {
       setWalletConnected(false);
       setRequestingWalletConnection(false);

@@ -27,6 +27,7 @@
     "@polkadot/util-crypto": "^10.4.2",
     "bignumber.js": "^9.1.1",
     "ethers": "^5.7.2",
+    "is-mobile": "^4.0.0",
     "moment": "^2.29.4"
   }
 }
