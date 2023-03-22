@@ -7,7 +7,7 @@ export type ChainName = "Crab" | "Pangolin" | "Darwinia" | "Pangoro";
 import { Struct } from "@polkadot/types";
 import { Contract, ContractInterface } from "@ethersproject/contracts";
 import { ApiPromise } from "@polkadot/api";
-import { AssetDistribution } from "../dist";
+import { AssetDistribution } from "./storage";
 
 export interface Token {
   name?: string;
