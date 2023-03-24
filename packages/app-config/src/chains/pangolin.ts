@@ -4,6 +4,8 @@ import multisigContract from "../abi/contract.json";
 export const pangolin: ChainConfig = {
   name: "Pangolin",
   displayName: "Pangolin",
+  explorerURLs: ["https://pangolin.subscan.io/"],
+  httpsURLs: ["https://pangolin-rpc.darwinia.network"],
   kton: {
     address: "0x0000000000000000000000000000000000000402",
     symbol: "PKTON",

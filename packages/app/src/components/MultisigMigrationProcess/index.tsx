@@ -33,6 +33,7 @@ interface MultisigAccountData {
   who: string[];
   asset: Asset;
   threshold: number;
+  initializer: string;
 }
 
 const MultisigMigrationProcess = () => {
@@ -146,7 +147,7 @@ const MultisigMigrationProcess = () => {
               className={"!h-[30px]"}
               btnType={"secondary"}
             >
-              Migrate
+              {t(localeKeys.migrate)}
             </Button>
           </div>
         );
@@ -159,6 +160,7 @@ const MultisigMigrationProcess = () => {
       const params = new URLSearchParams(location.search);
       params.set("address", item.formattedAddress);
       params.set("name", item.name);
+      params.set("initializer", item.initializer);
       params.set("who", item.who.join(","));
       params.set("threshold", item.threshold.toString());
       navigate(`/multisig-account-migration-summary?${params.toString()}`);
@@ -178,6 +180,7 @@ const MultisigMigrationProcess = () => {
         address: accountItem.address,
         formattedAddress: formattedAddress,
         name: accountItem.meta.name,
+        initializer: accountItem.meta.initializer,
         asset: {
           ring: asset?.ring.transferable ?? BigNumber(0),
           kton: asset?.kton.transferable ?? BigNumber(0),
@@ -271,7 +274,7 @@ const MultisigMigrationProcess = () => {
       }
       setCheckingAccountExistence(true);
       const thresholdNumber = Number(threshold);
-      const account = await checkDarwiniaOneMultisigAccount(signatories, thresholdNumber, name);
+      const account = await checkDarwiniaOneMultisigAccount(selectedAddress, signatories, thresholdNumber, name);
       setCheckingAccountExistence(false);
 
       if (typeof account === "undefined") {

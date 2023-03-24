@@ -3,8 +3,8 @@ import { STORAGE as APP_STORAGE } from "@darwinia/app-config";
 import BigNumber from "bignumber.js";
 import { ethers, utils } from "ethers";
 import { encodeAddress, createKeyMulti, sortAddresses, isAddress, decodeAddress } from "@polkadot/util-crypto";
-import { u8aToHex } from "@polkadot/util";
-export { isMobile } from 'is-mobile';
+import { u8aToHex, numberToHex } from "@polkadot/util";
+export { isMobile } from "is-mobile";
 
 export const setStore = (key: keyof Storage, value: unknown) => {
   try {
@@ -139,4 +139,8 @@ export const isSubstrateAddress = (address: string) => {
 export const getPublicKey = (accountAddress: string) => {
   const publicKeyArray = decodeAddress(accountAddress);
   return u8aToHex(publicKeyArray);
+};
+
+export const convertNumberToHex = (number: number) => {
+  return numberToHex(number);
 };

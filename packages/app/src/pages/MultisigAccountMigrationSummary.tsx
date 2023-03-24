@@ -5,10 +5,11 @@ import { useLocation } from "react-router-dom";
 import { useState } from "react";
 import MultisigMigrationProgressTabs from "../components/MultisigMigrationProgressTabs";
 import MigrationSummary from "../components/MigrationSummary";
+import { useWallet } from "@darwinia/app-providers";
 
 const MultisigAccountMigrationSummary = () => {
   const { t } = useAppTranslation();
-  const [isAccountMigrationInitialized, setAccountMigrationInitialized] = useState<boolean>(true);
+  const { isMultisigMigrationInitialized } = useWallet();
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -35,13 +36,10 @@ const MultisigAccountMigrationSummary = () => {
   return (
     <div className={"flex flex-col gap-[20px]"}>
       <MultisigAccountInfo />
-      <MigrationSummary accountAddress={address} />
-      {isAccountMigrationInitialized ? (
+      {isMultisigMigrationInitialized ? (
         <MultisigMigrationProgressTabs />
       ) : (
-        <div className={"card"}>
-          <TokensBalanceSummary asset={undefined} />
-        </div>
+        <MigrationSummary accountAddress={address} />
       )}
       <div className={"flex flex-col lg:flex-row justify-between"}>
         {footerLinks.map((item, index) => {

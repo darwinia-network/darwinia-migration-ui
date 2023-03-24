@@ -4,6 +4,8 @@ import multisigContract from "../abi/contract.json";
 export const pangoro: ChainConfig = {
   name: "Pangoro",
   displayName: "Pangoro",
+  explorerURLs: ["https://pangoro.subscan.io/"],
+  httpsURLs: ["https://pangoro-rpc.darwinia.network"],
   kton: {
     address: "0x0000000000000000000000000000000000000402",
     symbol: "OKTON",
@@ -16,7 +18,7 @@ export const pangoro: ChainConfig = {
     decimals: 9,
   },
   contractAddresses: {
-    multisig: "0xF09FE18d3f4b4345b47c098C8B8Fba7743418aA4",
+    multisig: "0x6c25E0c1f57d7E78d7eB8D350f11204137EF71bE",
   },
   contractInterface: {
     multisig: multisigContract,

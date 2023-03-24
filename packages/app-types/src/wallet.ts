@@ -38,6 +38,8 @@ export interface ChainConfig {
   chainId: number;
   ring: Token;
   kton: Token;
+  httpsURLs: string[];
+  explorerURLs: string[];
   prefix: number;
   substrate: Substrate;
   contractInterface: ContractABI;
@@ -79,23 +81,38 @@ export interface WalletCtx {
   isRequestingWalletConnection: boolean;
   isWalletConnected: boolean;
   connectWallet: (id: SupportedWallet) => void;
+  connectEthereumWallet: () => void;
   disconnectWallet: () => void;
   forceSetAccountAddress: (accountAddress: string) => void;
   setSelectedAccount: (selectedAccount: CustomInjectedAccountWithMeta) => void;
   changeSelectedNetwork: (network: ChainConfig) => void;
   selectedNetwork: ChainConfig | undefined;
   error: WalletError | undefined;
+  ethereumError: WalletError | undefined;
+  selectedEthereumAccount: string | undefined;
+  isCorrectEthereumChain: boolean | undefined;
   selectedAccount: CustomInjectedAccountWithMeta | undefined;
   injectedAccounts: CustomInjectedAccountWithMeta[] | undefined;
   setTransactionStatus: (value: boolean) => void;
   isLoadingTransaction: boolean | undefined;
   onInitMigration: (from: string, to: string, callback: (isSuccessful: boolean) => void) => void;
+  onInitMultisigMigration: (
+    from: string,
+    to: string,
+    initializer: string,
+    otherAccounts: string[],
+    threshold: string,
+    callback: (isSuccessful: boolean) => void
+  ) => void;
   isAccountMigratedJustNow: boolean | undefined;
   walletConfig: WalletConfig | undefined;
   isLoadingBalance: boolean | undefined;
   isMultisig: boolean | undefined;
   setMultisig: (value: boolean) => void;
+  setMultisigMigrationInitialized: (value: boolean) => void;
+  isMultisigMigrationInitialized: boolean | undefined;
   checkDarwiniaOneMultisigAccount: (
+    initializer: string,
     signatories: string[],
     threshold: number,
     name?: string
@@ -113,6 +130,7 @@ export interface SpVersionRuntimeVersion extends Struct {
 }
 
 export interface MultisigAccountMeta {
+  initializer: string;
   who: string[];
   name: string;
   threshold: number;

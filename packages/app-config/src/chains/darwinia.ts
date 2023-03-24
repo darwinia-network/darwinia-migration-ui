@@ -4,6 +4,8 @@ import multisigContract from "../abi/contract.json";
 export const darwinia: ChainConfig = {
   name: "Darwinia",
   displayName: "Darwinia",
+  explorerURLs: ["https://darwinia.subscan.io/"],
+  httpsURLs: ["https://rpc.darwinia.network"],
   kton: {
     address: "0x0000000000000000000000000000000000000402",
     symbol: "KTON",

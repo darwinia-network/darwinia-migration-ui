@@ -4,6 +4,8 @@ import multisigContract from "../abi/contract.json";
 export const crab: ChainConfig = {
   name: "Crab",
   displayName: "Crab",
+  explorerURLs: ["https://crab.subscan.io/"],
+  httpsURLs: ["https://crab-rpc.darwinia.network"],
   kton: {
     address: "0x0000000000000000000000000000000000000402",
     symbol: "CKTON",
