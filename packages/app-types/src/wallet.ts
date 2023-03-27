@@ -99,6 +99,7 @@ export interface WalletCtx {
   onInitMultisigMigration: (
     from: string,
     to: string,
+    signerAddress: string,
     initializer: string,
     otherAccounts: string[],
     threshold: string,
@@ -109,8 +110,6 @@ export interface WalletCtx {
   isLoadingBalance: boolean | undefined;
   isMultisig: boolean | undefined;
   setMultisig: (value: boolean) => void;
-  setMultisigMigrationInitialized: (value: boolean) => void;
-  isMultisigMigrationInitialized: boolean | undefined;
   checkDarwiniaOneMultisigAccount: (
     initializer: string,
     signatories: string[],
@@ -118,11 +117,15 @@ export interface WalletCtx {
     name?: string
   ) => Promise<MultisigAccount | undefined>;
   getAccountBalance: (account: string) => Promise<AssetDistribution | undefined>;
+  checkMultisigAccountMigrationStatus: (account: string) => Promise<undefined | DarwiniaAccountMigrationMultisig>;
   apiPromise: ApiPromise | undefined;
   currentBlock: CurrentBlock | undefined;
   isLoadingMultisigBalance: boolean | undefined;
   setLoadingMultisigBalance: (isLoading: boolean) => void;
   multisigContract: Contract | undefined;
+  multisigMigrationStatus: DarwiniaAccountMigrationMultisig | undefined;
+  getAccountPrettyName: (address: string) => Promise<string | undefined>;
+  isMultisigAccountMigratedJustNow: boolean | undefined;
 }
 
 export interface SpVersionRuntimeVersion extends Struct {
@@ -145,3 +148,11 @@ export interface CurrentBlock {
   number: number;
   timestamp: number;
 }
+
+export interface DarwiniaAccountMigrationMultisig {
+  threshold: number;
+  migrateTo: string;
+  members: [string, boolean][];
+}
+
+export type DestinationType = "General Account" | "Multisig Account";

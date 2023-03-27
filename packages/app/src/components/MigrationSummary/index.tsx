@@ -31,6 +31,12 @@ const MigrationSummary = ({ isCheckingMigrationStatus, accountAddress }: Props) 
   }, [isLoadingLedger, isCheckingMigrationStatus, isLoadingBalance]);
 
   useEffect(() => {
+    return () => {
+      setTransactionStatus(false);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!apiPromise || !currentBlock || !isInitializingLocalAccountsRef.current) {
       return;
     }

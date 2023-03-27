@@ -107,6 +107,8 @@ const enUs = {
   [localeKeys.invalidThreshold]: "Invalid threshold",
   [localeKeys.invalidMemberAddress]: "Invalid member address",
   [localeKeys.selectYourAddress]: "Select your address",
+  [localeKeys.initialized]: "Initialized",
+  [localeKeys.approved]: "Approved",
 };
 
 export default enUs;

@@ -1,7 +1,7 @@
 import { localeKeys, useAppTranslation } from "@darwinia/app-locale";
 import { useWallet } from "@darwinia/app-providers";
 import { useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Identicon from "@polkadot/react-identicon";
 import copyIcon from "../../assets/images/copy.svg";
 import { Button, CheckboxGroup, Input, ModalEnhanced, SlideDownUp, Tooltip } from "@darwinia/ui";
@@ -10,29 +10,35 @@ import JazzIcon from "../JazzIcon";
 import { Tip } from "../MigrationForm";
 import helpIcon from "../../assets/images/help.svg";
 import trashIcon from "../../assets/images/trash-bin.svg";
-import { isValidNumber, isEthereumAddress, getPublicKey, convertToSS58 } from "@darwinia/app-utils";
+import { isValidNumber, isEthereumAddress, getPublicKey, convertToSS58, setStore, getStore } from "@darwinia/app-utils";
 import { BigNumber as EthersBigNumber } from "ethers";
+import { DestinationInfo, DestinationType } from "@darwinia/app-types";
 
 interface MultisigMemberAddress {
   address: string;
   id: number;
 }
 
-const MultisigAccountInfo = () => {
+interface Props {
+  isIsWaitingToDeploy: boolean;
+  isSuccessfullyMigrated: boolean;
+}
+
+const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Props) => {
   const { t } = useAppTranslation();
   const {
     injectedAccounts,
     multisigContract,
-    setMultisigMigrationInitialized,
     selectedNetwork,
     onInitMultisigMigration,
     connectEthereumWallet,
     selectedEthereumAccount,
     isCorrectEthereumChain,
+    multisigMigrationStatus,
   } = useWallet();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const address = params.get("address");
+  const address = convertToSS58(params.get("address") ?? "", selectedNetwork?.prefix ?? 18);
   const initializer = params.get("initializer");
   const members = (params.get("who") ?? "")
     .split(",")
@@ -47,14 +53,16 @@ const MultisigAccountInfo = () => {
   const [isConfirmationModalVisible, setConfirmationModalVisibility] = useState<boolean>(false);
   const [checkedTips, setCheckedTips] = useState<Tip[]>([]);
   const [isProcessingMigration, setProcessingMigration] = useState<boolean>(false);
+  /* Member addresses will ways be one item less since the first address will always be chosen
+   * automatically on MetaMask */
   const [memberAddresses, setMemberAddresses] = useState<MultisigMemberAddress[]>([
     { id: new Date().getTime(), address: "" },
   ]);
+  //stores sorted members account address
+  const allMembersRef = useRef<string[]>([]);
   const [newAccountThreshold, setNewAccountThreshold] = useState<string>("");
   const [newMultisigAccountAddress, setNewMultisigAccountAddress] = useState<string>("");
   const [isIsGeneratingMultisigAccount, setIsGeneratingMultisigAccount] = useState<boolean>(false);
-  const [isSuccessfullyMigrated, setIsSuccessfullyMigrated] = useState<boolean>(false);
-  const [isIsWaitingToDeploy, setIsWaitingToDeploy] = useState<boolean>(false);
 
   const destinationTabs = [
     {
@@ -90,23 +98,29 @@ const MultisigAccountInfo = () => {
     setAttentionModalVisibility(true);
   };
 
-  const generateMultisigAccount = async (members: MultisigMemberAddress[], address: string) => {
+  const generateMultisigAccount = async (
+    members: MultisigMemberAddress[],
+    selectedEthereumAccount: string,
+    multisigSubstrateAddress: string
+  ) => {
     try {
       setIsGeneratingMultisigAccount(true);
-      const publicKey = getPublicKey(address);
-      const memberAddresses = members
-        .map((item) => item.address)
-        .sort()
-        .map((item) => item);
-      const thresholdNumber = EthersBigNumber.from(threshold);
+      const publicKey = getPublicKey(multisigSubstrateAddress);
+      const memberAddresses = members.map((item) => item.address);
+
+      memberAddresses.unshift(selectedEthereumAccount);
+      const sortedMembers = memberAddresses.sort();
+      const thresholdNumber = EthersBigNumber.from(newAccountThreshold);
       console.log("multisigContract", multisigContract);
       console.log("publicKey", publicKey);
-      console.log("memberAddresses", memberAddresses);
+      console.log("memberAddresses", sortedMembers);
       console.log("thresholdNumber", thresholdNumber.toString());
-      const multisigAddress = await multisigContract?.computeAddress(publicKey, memberAddresses, thresholdNumber);
+      const multisigAddress = await multisigContract?.computeAddress(publicKey, sortedMembers, thresholdNumber);
+      allMembersRef.current = [...sortedMembers];
       setNewMultisigAccountAddress(multisigAddress);
       setIsGeneratingMultisigAccount(false);
     } catch (e) {
+      allMembersRef.current = [];
       setIsGeneratingMultisigAccount(false);
       console.log(e);
     }
@@ -159,7 +173,7 @@ const MultisigAccountInfo = () => {
     } else {
       const isValidThreshold = isValidNumber(newAccountThreshold);
       const isValidMultisigAddress = isEthereumAddress(newMultisigAccountAddress);
-      return !isValidThreshold || !isValidMultisigAddress || isIsGeneratingMultisigAccount;
+      return !isValidThreshold || !isValidMultisigAddress || isIsGeneratingMultisigAccount || !isCorrectEthereumChain;
     }
   };
 
@@ -174,18 +188,51 @@ const MultisigAccountInfo = () => {
     try {
       setProcessingMigration(true);
       const destination = activeDestinationTab === 1 ? destinationAddress : newMultisigAccountAddress;
+      const type: DestinationType = activeDestinationTab === 1 ? "General Account" : "Multisig Account";
 
       const urlParams = new URLSearchParams(location.search);
       urlParams.set("destination", destination);
+      urlParams.set("destinationMembers", allMembersRef.current.join(","));
+      if (activeDestinationTab === 2) {
+        urlParams.set("destinationThreshold", newAccountThreshold);
+      }
+      urlParams.set("destinationType", type);
+
+      const oldData = getStore("destinationInfo") ?? {};
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      oldData[destination] = {
+        threshold: Number(newAccountThreshold),
+        address: destination,
+        type: type,
+        members: allMembersRef.current,
+      };
+
+      setStore("destinationInfo", oldData);
 
       window.history.pushState({}, "", `/#${location.pathname}?${urlParams.toString()}`);
 
-      setMultisigMigrationInitialized(true);
       const otherAccounts = members.filter((account) => account !== initializer);
-      onInitMultisigMigration(address, destination, initializer, otherAccounts, threshold, (isSuccessful) => {
-        console.log("isSuccessful======", isSuccessful);
-      });
+      //TODO update the signer accordingly
+      const signerAddress = initializer;
+      onInitMultisigMigration(
+        address,
+        destination,
+        signerAddress,
+        initializer,
+        otherAccounts,
+        threshold,
+        (isSuccessful) => {
+          if (isSuccessful) {
+            setConfirmationModalVisibility(false);
+          } else {
+            console.log("something went wrong in migration");
+          }
+          console.log("isSuccessful======", isSuccessful);
+        }
+      );
     } catch (e) {
+      console.log(e);
       setProcessingMigration(false);
     }
   };
@@ -200,8 +247,15 @@ const MultisigAccountInfo = () => {
     const members = [...memberAddresses];
     members[index].address = value;
     setMemberAddresses(() => members);
-    if (address && members.length >= Number(newAccountThreshold ?? 1)) {
-      generateMultisigAccount(members, address);
+    /* Member addresses will ways be one item less since the first address will always be chosen
+     * automatically on MetaMask */
+    if (
+      selectedEthereumAccount &&
+      isCorrectEthereumChain &&
+      address &&
+      members.length >= Number(newAccountThreshold ?? 1) - 1
+    ) {
+      generateMultisigAccount(members, selectedEthereumAccount, address);
     }
   };
 
@@ -268,7 +322,7 @@ const MultisigAccountInfo = () => {
                 <img onClick={generateShareLink} className={"clickable shrink-0"} src={copyIcon} alt="image" />
               </div>
             </div>
-            <Button onClick={onShowMigrateModal}>{t(localeKeys.migrate)}</Button>
+            {!multisigMigrationStatus && <Button onClick={onShowMigrateModal}>{t(localeKeys.migrate)}</Button>}
           </div>
           <div onClick={toggleMemberSections} className={"flex gap-[20px] items-center mt-[20px]"}>
             <div className={"flex gap-[10px]"}>
@@ -292,7 +346,9 @@ const MultisigAccountInfo = () => {
               <div className={"pt-[20px]"}>
                 {members.map((member, index) => {
                   const isMyAccount = !!injectedAccounts?.find(
-                    (account) => account.address.toLowerCase() === member.toLowerCase()
+                    (account) =>
+                      convertToSS58(account.address, selectedNetwork?.prefix ?? 18).toLowerCase() ===
+                      member.toLowerCase()
                   );
                   return (
                     <div

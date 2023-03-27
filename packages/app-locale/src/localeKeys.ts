@@ -105,4 +105,6 @@ export const localeKeys = {
   invalidThreshold: "invalidThreshold",
   invalidMemberAddress: "invalidMemberAddress",
   selectYourAddress: "selectYourAddress",
+  initialized: "initialized",
+  approved: "approved",
 };

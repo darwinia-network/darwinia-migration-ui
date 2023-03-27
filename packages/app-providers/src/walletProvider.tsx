@@ -17,6 +17,7 @@ import {
   Deposit,
   DarwiniaStakingLedger,
   AssetDistribution,
+  DarwiniaAccountMigrationMultisig,
 } from "@darwinia/app-types";
 import { ApiPromise, WsProvider, SubmittableResult } from "@polkadot/api";
 import { web3Accounts, web3Enable } from "@polkadot/extension-dapp";
@@ -27,12 +28,13 @@ import { keyring } from "@polkadot/ui-keyring";
 import BigNumber from "bignumber.js";
 import { FrameSystemAccountInfo } from "@darwinia/api-derive/accounts/types";
 import { UnSubscription } from "./storageProvider";
-import { Option, Vec } from "@polkadot/types";
+import { Option } from "@polkadot/types";
 import { convertToSS58, setStore, getStore, createMultiSigAccount, convertNumberToHex } from "@darwinia/app-utils";
 import useBlock from "./hooks/useBlock";
 import useLedger from "./hooks/useLedger";
 import { Contract, ethers } from "ethers";
 import { HexString } from "@polkadot/util/types";
+import { Codec } from "@polkadot/types/types";
 
 /*This is just a blueprint, no value will be stored in here*/
 const initialState: WalletCtx = {
@@ -54,14 +56,12 @@ const initialState: WalletCtx = {
   currentBlock: undefined,
   isLoadingMultisigBalance: undefined,
   multisigContract: undefined,
-  isMultisigMigrationInitialized: undefined,
   selectedEthereumAccount: undefined,
   ethereumError: undefined,
   isCorrectEthereumChain: undefined,
+  multisigMigrationStatus: undefined,
+  isMultisigAccountMigratedJustNow: undefined,
   setLoadingMultisigBalance: (isLoading: boolean) => {
-    //ignore
-  },
-  setMultisigMigrationInitialized: (isLoading: boolean) => {
     //ignore
   },
   changeSelectedNetwork: () => {
@@ -95,9 +95,16 @@ const initialState: WalletCtx = {
   getAccountBalance: (account: string) => {
     return Promise.resolve(undefined);
   },
+  checkMultisigAccountMigrationStatus: (account: string) => {
+    return Promise.resolve(undefined);
+  },
+  getAccountPrettyName: () => {
+    return Promise.resolve(undefined);
+  },
   onInitMultisigMigration: (
     from: string,
     to: string,
+    signerAddress: string,
     initializer: string,
     otherAccounts: string[],
     threshold: string,
@@ -132,13 +139,14 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const DARWINIA_APPS = "darwinia/apps";
   const isKeyringInitialized = useRef<boolean>(false);
   const [isAccountMigratedJustNow, setAccountMigratedJustNow] = useState<boolean>(false);
+  const [isMultisigAccountMigratedJustNow, setMultisigAccountMigratedJustNow] = useState<boolean>(false);
   const [specName, setSpecName] = useState<string>();
   const [isMultisig, setMultisig] = useState<boolean>(false);
   const [isLoadingMultisigBalance, setLoadingMultisigBalance] = useState<boolean>(false);
   const [selectedWallet, _setSelectedWallet] = useState<SupportedWallet | null | undefined>();
   const [multisigContract, setMultisigContract] = useState<Contract>();
-  const [isMultisigMigrationInitialized, setMultisigMigrationInitialized] = useState<boolean>(false);
   const [isCorrectEthereumChain, setCorrectEthereumChain] = useState<boolean>(false);
+  const [multisigMigrationStatus, setMultisigMigrationStatus] = useState<DarwiniaAccountMigrationMultisig>();
 
   const { currentBlock } = useBlock(apiPromise);
   const { getAccountAsset } = useLedger({
@@ -416,6 +424,13 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     return !!window.ethereum;
   };
 
+  const getAccountPrettyName = useCallback(
+    (address: string): Promise<string | undefined> => {
+      return getPrettyName(address);
+    },
+    [apiPromise]
+  );
+
   /* Listen to metamask account changes */
   useEffect(() => {
     if (!isEthereumWalletInstalled() || !isEthereumWalletConnected || !selectedNetwork) {
@@ -618,6 +633,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     async (
       from: string,
       to: string,
+      signerAddress: string,
       initializer: string,
       otherAccounts: string[],
       threshold: string,
@@ -625,20 +641,24 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     ) => {
       let unSubscription: UnSubscription;
       try {
+        console.log("imeingia=====");
         if (!apiPromise || !signer?.signRaw || !specName) {
           return callback(false);
         }
+        setMultisigAccountMigratedJustNow(false);
+        console.log("level=====1");
 
         /*remove a digit from the network name such as pangolin2, etc*/
         const oldChainName = specName.slice(0, -1);
 
         const message = `I authorize the migration to ${to.toLowerCase()}, an unused address on ${specName}. Sign this message to authorize using the Substrate key associated with the account on ${oldChainName} that you wish to migrate.`;
-
+        console.log("level=====2", signerAddress);
         const { signature } = await signer.signRaw({
-          address: from,
+          address: signerAddress,
           type: "bytes",
           data: message,
         });
+        console.log("level=====3");
 
         const extrinsic = await apiPromise.tx.accountMigration.migrateMultisig(
           initializer,
@@ -651,11 +671,12 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         unSubscription = (await extrinsic.send((result: SubmittableResult) => {
           console.log(result.toHuman());
           if (result.isCompleted && result.isFinalized) {
-            setAccountMigratedJustNow(true);
+            setMultisigAccountMigratedJustNow(true);
             callback(true);
           }
         })) as unknown as UnSubscription;
       } catch (e) {
+        setMultisigAccountMigratedJustNow(false);
         console.log(e);
         callback(false);
       }
@@ -667,6 +688,27 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       };
     },
     [apiPromise, signer, specName]
+  );
+
+  const checkMultisigAccountMigrationStatus = useCallback(
+    async (accountAddress: string): Promise<undefined | DarwiniaAccountMigrationMultisig> => {
+      if (!apiPromise) {
+        setMultisigMigrationStatus(undefined);
+        return Promise.resolve(undefined);
+      }
+
+      const result = (await apiPromise.query.accountMigration.multisigs(accountAddress)) as unknown as Option<Codec>;
+      if (!result.isSome) {
+        setMultisigMigrationStatus(undefined);
+        return Promise.resolve(undefined);
+      }
+      const resultString = result.unwrap().toHuman();
+      const resultObj = resultString as unknown as DarwiniaAccountMigrationMultisig;
+      resultObj.threshold = Number(resultObj.threshold);
+      setMultisigMigrationStatus(resultObj);
+      return Promise.resolve(resultObj);
+    },
+    [apiPromise]
   );
 
   useEffect(() => {
@@ -749,13 +791,15 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         isLoadingMultisigBalance,
         setLoadingMultisigBalance,
         multisigContract,
-        isMultisigMigrationInitialized,
-        setMultisigMigrationInitialized,
         onInitMultisigMigration,
         connectEthereumWallet,
         ethereumError,
         selectedEthereumAccount,
         isCorrectEthereumChain,
+        checkMultisigAccountMigrationStatus,
+        multisigMigrationStatus,
+        getAccountPrettyName,
+        isMultisigAccountMigratedJustNow,
       }}
     >
       {children}

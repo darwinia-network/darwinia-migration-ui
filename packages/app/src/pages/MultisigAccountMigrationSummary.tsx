@@ -2,21 +2,37 @@ import { localeKeys, useAppTranslation } from "@darwinia/app-locale";
 import TokensBalanceSummary from "../components/TokensBalanceSummary";
 import MultisigAccountInfo from "../components/MultisigAccountInfo";
 import { useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MultisigMigrationProgressTabs from "../components/MultisigMigrationProgressTabs";
 import MigrationSummary from "../components/MigrationSummary";
 import { useWallet } from "@darwinia/app-providers";
+import { convertToSS58 } from "@darwinia/app-utils";
+import { DarwiniaAccountMigrationMultisig } from "@darwinia/app-types";
 
 const MultisigAccountMigrationSummary = () => {
   const { t } = useAppTranslation();
-  const { isMultisigMigrationInitialized } = useWallet();
+  const { checkMultisigAccountMigrationStatus, selectedNetwork, apiPromise, isMultisigAccountMigratedJustNow } =
+    useWallet();
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const address = params.get("address");
-  const members = (params.get("who") ?? "").split(",");
-  const name = params.get("name");
-  const threshold = params.get("threshold");
+  const address = convertToSS58(params.get("address") ?? "", selectedNetwork?.prefix ?? 18);
+  const [isSuccessfullyMigrated, setIsSuccessfullyMigrated] = useState<boolean>(false);
+  const [isIsWaitingToDeploy, setIsWaitingToDeploy] = useState<boolean>(false);
+  const [multisigMigrationStatus, setMultisigMigrationStatus] = useState<DarwiniaAccountMigrationMultisig>();
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      const result = await checkMultisigAccountMigrationStatus(address);
+      setMultisigMigrationStatus(result);
+    };
+    if (apiPromise || isMultisigAccountMigratedJustNow) {
+      checkStatus().catch((e) => {
+        console.log(e);
+        //ignore
+      });
+    }
+  }, [apiPromise, isMultisigAccountMigratedJustNow]);
 
   const footerLinks = [
     {
@@ -35,9 +51,12 @@ const MultisigAccountMigrationSummary = () => {
 
   return (
     <div className={"flex flex-col gap-[20px]"}>
-      <MultisigAccountInfo />
-      {isMultisigMigrationInitialized ? (
-        <MultisigMigrationProgressTabs />
+      <MultisigAccountInfo isIsWaitingToDeploy={isIsWaitingToDeploy} isSuccessfullyMigrated={isSuccessfullyMigrated} />
+      {multisigMigrationStatus ? (
+        <MultisigMigrationProgressTabs
+          isWaitingToDeploy={isIsWaitingToDeploy}
+          migrationStatus={multisigMigrationStatus}
+        />
       ) : (
         <MigrationSummary accountAddress={address} />
       )}

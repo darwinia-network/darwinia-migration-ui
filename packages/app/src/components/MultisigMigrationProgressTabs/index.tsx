@@ -11,56 +11,110 @@ import ktonIcon from "../../assets/images/kton.svg";
 import helpIcon from "../../assets/images/help.svg";
 import infoIcon from "../../assets/images/info.svg";
 import { useWallet } from "@darwinia/app-providers";
-import { prettifyNumber, prettifyTooltipNumber } from "@darwinia/app-utils";
+import { convertToSS58, getStore, prettifyNumber, prettifyTooltipNumber } from "@darwinia/app-utils";
+import { DarwiniaAccountMigrationMultisig, Destination, DestinationInfo, DestinationType } from "@darwinia/app-types";
 
-const MultisigMigrationProgressTabs = () => {
+interface Props {
+  migrationStatus: DarwiniaAccountMigrationMultisig | undefined;
+  isWaitingToDeploy: boolean;
+}
+
+interface MemberStatus {
+  name: string;
+  address: string;
+  hasApproved: boolean;
+}
+
+const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: Props) => {
   const { t } = useAppTranslation();
-  const [memberAccounts, setMemberAccounts] = useState<string[]>();
+  const [memberAccounts, setMemberAccounts] = useState<MemberStatus[]>([]);
   const location = useLocation();
-  const { selectedNetwork } = useWallet();
+  const { selectedNetwork, getAccountPrettyName, apiPromise } = useWallet();
   const params = new URLSearchParams(location.search);
-  const address = params.get("address");
-  const members = (params.get("who") ?? "").split(",");
-  const name = params.get("name");
+  const members = (params.get("who") ?? "")
+    .split(",")
+    .map((address) => convertToSS58(address, selectedNetwork?.prefix ?? 18));
   const threshold = params.get("threshold");
+  const initializer = convertToSS58(params.get("initializer") ?? "", selectedNetwork?.prefix ?? 18);
+  const [haveAllMembersApproved, setHaveAllMembersApproved] = useState<boolean>(false);
+  const [destination, setDestination] = useState<Destination>();
 
   useEffect(() => {
-    const members = (params.get("who") ?? "").split(",");
-    setMemberAccounts(members);
-  }, [location]);
+    if (!apiPromise || !migrationStatus || !location) {
+      return;
+    }
 
-  const tabs: Tab[] = [
-    {
-      id: "1",
-      title: t(localeKeys.inProgress, { number: 3 }),
-    },
-    {
-      id: "2",
-      title: t(localeKeys.confirmedExtrinsic, { number: 0 }),
-    },
-    {
-      id: "3",
-      title: t(localeKeys.cancelledExtrinsics, { number: 0 }),
-    },
-  ];
-  const [selectedTab, setSelectedTab] = useState<Tab>(tabs[0]);
-  const onTabsChange = (selectedTab: Tab) => {
-    setSelectedTab(selectedTab);
-  };
+    const prepareMembers = async () => {
+      setMemberAccounts([]);
+      let approvedCounter = 0;
+      const tempMembers: MemberStatus[] = [];
+      for (let i = 0; i < members.length; i++) {
+        const address = members[i];
+        const account = migrationStatus.members.filter((member) => member[0] === address);
+        if (account.length > 0) {
+          const hasApproved = account[0][1];
+          const name = (await getAccountPrettyName(address)) ?? "";
+          if (hasApproved) {
+            approvedCounter = approvedCounter + 1;
+          }
+          const status: MemberStatus = {
+            address,
+            hasApproved,
+            name,
+          };
+          tempMembers.push(status);
+        }
+      }
+      setMemberAccounts((old) => {
+        return [...old, ...tempMembers];
+      });
+      if (approvedCounter < Number(threshold)) {
+        setHaveAllMembersApproved(false);
+      } else {
+        setHaveAllMembersApproved(true);
+      }
+    };
 
-  const parameters = {
-    destination: {
-      account: "0xe59261f6D4088BcD69985A3D369Ff14cC54EF1E5",
-      status: 0,
-    },
-    type: "Multisig Account",
-    threshold: threshold,
-    member: members,
-    asset: {
-      ring: BigNumber(20000000000000000000),
-      kton: BigNumber(35000000000000000000),
-    },
-  };
+    prepareMembers().catch((e) => {
+      console.log(e);
+    });
+  }, [location, apiPromise, migrationStatus]);
+
+  useEffect(() => {
+    if (migrationStatus && location) {
+      const destination = migrationStatus.migrateTo;
+      const destinationInfo = getStore<DestinationInfo>("destinationInfo");
+
+      const searchParams = new URLSearchParams(location.search);
+      if (searchParams.get("destinationMembers")) {
+        // this is a shared link
+
+        const destinationAddress = searchParams.get("destination");
+        const destinationMembers = (searchParams.get("destinationMembers") ?? "").split(",");
+        const type = searchParams.get("destinationType") as DestinationType;
+        const threshold = Number(searchParams.get("destinationThreshold"));
+        setDestination({
+          type,
+          threshold,
+          address: destinationAddress ?? "",
+          members: destinationMembers,
+        });
+      } else if (destinationInfo && destinationInfo[destination]) {
+        const value = destinationInfo[destination];
+        const urlParams = new URLSearchParams(location.search);
+
+        urlParams.set("destination", value.address);
+        urlParams.set("destinationMembers", value.members.join(","));
+        if (value.type === "Multisig Account") {
+          urlParams.set("destinationThreshold", `${value.threshold}`);
+        }
+        urlParams.set("destinationType", value.type);
+
+        window.history.pushState({}, "", `/#${location.pathname}?${urlParams.toString()}`);
+        setDestination(value);
+      }
+    }
+  }, [migrationStatus, location]);
 
   const ringTokenIcon = selectedNetwork?.name === "Crab" ? crabIcon : ringIcon;
   const ktonTokenIcon = selectedNetwork?.name === "Crab" ? cktonIcon : ktonIcon;
@@ -77,44 +131,40 @@ const MultisigMigrationProgressTabs = () => {
     <div className={"flex flex-col"}>
       <div className={"flex flex-col gap-[20px]"}>
         <div>
-          <Tabs onChange={onTabsChange} tabs={tabs} activeTabId={selectedTab.id} />
-        </div>
-        <div>
           {/*in progress*/}
           <div className={"card"}>
             <div className={"dw-custom-scrollbar"}>
               <div className={"min-w-[1100px]"}>
-                <div className={"bg-black px-[10px] py-[20px] !text-[12px] flex"}>
-                  <div className={"flex-1 shrink-0"}>{t(localeKeys.callHash)}</div>
-                  <div className={"w-[285px]"}>{t(localeKeys.status)}</div>
-                  <div className={"w-[160px]"}>{t(localeKeys.progress)}</div>
-                  <div className={"w-[225px]"}>{t(localeKeys.action)}</div>
-                </div>
                 <div className={"flex flex-col"}>
-                  <div className={"border-t border-b divider px-[10px] py-[15px] !text-[12px] flex"}>
-                    <div className={"flex-1 shrink-0"}>0x0E55c72781aCD923C4e3e7Ad9bB8363de15ef204</div>
-                    <div className={"w-[285px]"}>Multisig_Account_Migrate</div>
-                    <div className={"w-[160px]"}>3/3</div>
-                    <div className={"w-[225px]"}>{t(localeKeys.executed)}</div>
-                  </div>
-                  <div className={"px-[20px] pt-[20px] flex flex-col"}>
+                  <div className={"px-[20px] flex flex-col"}>
                     <div>
                       <div className={"pb-[10px]"}>{t(localeKeys.progress)}</div>
                       <div className={"bg-black"}>
-                        {memberAccounts?.map((item) => {
+                        {memberAccounts?.map((item, index) => {
+                          let tag = "";
+                          if (initializer === item.address) {
+                            tag = t(localeKeys.initialized);
+                          } else if (item.hasApproved) {
+                            tag = t(localeKeys.approved);
+                          } else {
+                            tag = "-";
+                          }
                           return (
-                            <div key={item} className={`flex justify-between py-[12px] border-b divider`}>
-                              <div className={"px-[10px]"}>onchainmoney.com</div>
+                            <div
+                              key={`${item.address}-${index}`}
+                              className={`flex justify-between py-[12px] border-b divider`}
+                            >
+                              <div className={"px-[10px]"}>{item.name}</div>
                               <div className={"flex min-w-[470px] items-center gap-[5px] px-[10px]"}>
                                 <Identicon
-                                  value={item}
+                                  value={item.address}
                                   size={30}
                                   className={"rounded-full self-start bg-white shrink-0"}
                                   theme={"polkadot"}
                                 />
-                                <div>{item}</div>
+                                <div>{item.address}</div>
                               </div>
-                              <div className={"w-[190px] px-[10px]"}>Initialized</div>
+                              <div className={"w-[190px] px-[10px]"}>{tag}</div>
                             </div>
                           );
                         })}
@@ -128,41 +178,47 @@ const MultisigMigrationProgressTabs = () => {
                         <div className={`flex py-[12px] border-b divider`}>
                           <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.destination)}</div>
                           <div className={"flex-1 flex gap-[10px] items-center"}>
-                            <div>{parameters.destination.account}</div>
-                            <div className={"text-12 bg-primary px-[5px] py-[4px] flex gap-[4px]"}>
-                              <Tooltip message={t(localeKeys.waitingDeployMessage)}>
-                                <img className={"w-[16px] h-[16px]"} src={infoIcon} alt="icon" />
-                              </Tooltip>
-                              <div>{t(localeKeys.waitingDeploy)}</div>
-                            </div>
+                            <div>{destination?.address}</div>
+                            {!haveAllMembersApproved && (
+                              <div className={"text-12 bg-primary px-[5px] py-[4px] flex gap-[4px]"}>
+                                <Tooltip message={t(localeKeys.waitingDeployMessage)}>
+                                  <img className={"w-[16px] h-[16px]"} src={infoIcon} alt="icon" />
+                                </Tooltip>
+                                <div>{t(localeKeys.waitingDeploy)}</div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className={`flex py-[12px] border-b divider`}>
                           <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.type)}</div>
-                          <div className={"flex-1"}>{parameters.type}</div>
+                          <div className={"flex-1"}>{destination?.type}</div>
                         </div>
-                        <div className={`flex py-[12px] border-b divider`}>
-                          <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.threshold)}</div>
-                          <div className={"flex-1"}>{parameters.threshold}</div>
-                        </div>
-                        <div className={`flex py-[12px] border-b divider`}>
-                          <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.members)}</div>
-                          <div className={"flex-1 flex flex-col"}>
-                            {parameters.member.map((item, index) => {
-                              return <div key={`${item}-${index}`}>{item}</div>;
-                            })}
+                        {destination?.type === "Multisig Account" && (
+                          <div className={`flex py-[12px] border-b divider`}>
+                            <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.threshold)}</div>
+                            <div className={"flex-1"}>{destination?.threshold}</div>
                           </div>
-                        </div>
-                        <div className={`flex py-[12px] border-b divider`}>
+                        )}
+                        {destination?.type === "Multisig Account" && (
+                          <div className={`flex py-[12px] border-b divider`}>
+                            <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.members)}</div>
+                            <div className={"flex-1 flex flex-col"}>
+                              {destination?.members.map((item, index) => {
+                                return <div key={`${item}-${index}`}>{item}</div>;
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {/*<div className={`flex py-[12px] border-b divider`}>
                           <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.asset)}</div>
                           <div className={"flex-1"}>
                             <div className={"flex flex-row gap-[20px]"}>
                               <div className={"flex gap-[10px] items-center"}>
                                 <img className={"w-[18px] shrink-0"} src={ringTokenIcon} alt="image" />
                                 <div className={"flex gap-[10px] items-center"}>
-                                  <Tooltip message={prettifyTooltipNumber(parameters.asset.ring)}>
+                                  <Tooltip message={prettifyTooltipNumber(destinationParameters.asset.ring)}>
                                     {prettifyNumber({
-                                      number: parameters.asset.ring,
+                                      number: destinationParameters.asset.ring,
                                     })}
                                   </Tooltip>
                                   {selectedNetwork?.ring.symbol.toUpperCase()}
@@ -174,9 +230,9 @@ const MultisigMigrationProgressTabs = () => {
                               <div className={"flex gap-[10px] items-center"}>
                                 <img className={"w-[18px] shrink-0"} src={ktonTokenIcon} alt="image" />
                                 <div className={"flex gap-[10px] items-center"}>
-                                  <Tooltip message={prettifyTooltipNumber(parameters.asset.kton)}>
+                                  <Tooltip message={prettifyTooltipNumber(destinationParameters.asset.kton)}>
                                     {prettifyNumber({
-                                      number: parameters.asset.kton,
+                                      number: destinationParameters.asset.kton,
                                     })}
                                   </Tooltip>
                                   {selectedNetwork?.kton.symbol.toUpperCase()}
@@ -187,7 +243,7 @@ const MultisigMigrationProgressTabs = () => {
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </div>*/}
                       </div>
                     </div>
                   </div>
