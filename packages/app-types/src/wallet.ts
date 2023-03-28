@@ -97,12 +97,17 @@ export interface WalletCtx {
   isLoadingTransaction: boolean | undefined;
   onInitMigration: (from: string, to: string, callback: (isSuccessful: boolean) => void) => void;
   onInitMultisigMigration: (
-    from: string,
     to: string,
     signerAddress: string,
     initializer: string,
     otherAccounts: string[],
     threshold: string,
+    callback: (isSuccessful: boolean) => void
+  ) => void;
+  onApproveMultisigMigration: (
+    from: string,
+    to: string,
+    signerAddress: string,
     callback: (isSuccessful: boolean) => void
   ) => void;
   isAccountMigratedJustNow: boolean | undefined;

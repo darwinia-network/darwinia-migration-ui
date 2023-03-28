@@ -109,6 +109,8 @@ const enUs = {
   [localeKeys.selectYourAddress]: "Select your address",
   [localeKeys.initialized]: "Initialized",
   [localeKeys.approved]: "Approved",
+  [localeKeys.migrationFailed]: "Migration failed",
+  [localeKeys.approve]: "Approve",
 };
 
 export default enUs;

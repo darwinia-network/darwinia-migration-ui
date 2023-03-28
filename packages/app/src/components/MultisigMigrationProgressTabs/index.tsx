@@ -1,4 +1,4 @@
-import { Tabs, Tab, Tooltip } from "@darwinia/ui";
+import { Tabs, Tab, Tooltip, Button, notification } from "@darwinia/ui";
 import { localeKeys, useAppTranslation } from "@darwinia/app-locale";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -29,15 +29,28 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
   const { t } = useAppTranslation();
   const [memberAccounts, setMemberAccounts] = useState<MemberStatus[]>([]);
   const location = useLocation();
-  const { selectedNetwork, getAccountPrettyName, apiPromise } = useWallet();
+  const {
+    selectedNetwork,
+    getAccountPrettyName,
+    apiPromise,
+    injectedAccounts,
+    onApproveMultisigMigration,
+    setTransactionStatus,
+  } = useWallet();
   const params = new URLSearchParams(location.search);
+  const address = convertToSS58(params.get("address") ?? "", selectedNetwork?.prefix ?? 18);
   const members = (params.get("who") ?? "")
     .split(",")
     .map((address) => convertToSS58(address, selectedNetwork?.prefix ?? 18));
   const threshold = params.get("threshold");
   const initializer = convertToSS58(params.get("initializer") ?? "", selectedNetwork?.prefix ?? 18);
+  const destinationAddress = params.get("destination");
+  const destinationMembers = (params.get("destinationMembers") ?? "").split(",").filter((item) => item.trim() !== "");
+  const type = params.get("destinationType") as DestinationType;
+  const destinationThreshold = Number(params.get("destinationThreshold"));
   const [haveAllMembersApproved, setHaveAllMembersApproved] = useState<boolean>(false);
   const [destination, setDestination] = useState<Destination>();
+  const [recentlyApprovedAddresses, setRecentlyApprovedAddresses] = useState<string[]>([]);
 
   useEffect(() => {
     if (!apiPromise || !migrationStatus || !location) {
@@ -50,9 +63,9 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
       const tempMembers: MemberStatus[] = [];
       for (let i = 0; i < members.length; i++) {
         const address = members[i];
-        const account = migrationStatus.members.filter((member) => member[0] === address);
-        if (account.length > 0) {
-          const hasApproved = account[0][1];
+        const account = migrationStatus.members.find((member) => member[0] === address);
+        if (account) {
+          const hasApproved = account[1] || recentlyApprovedAddresses.includes(account[0]);
           const name = (await getAccountPrettyName(address)) ?? "";
           if (hasApproved) {
             approvedCounter = approvedCounter + 1;
@@ -65,9 +78,8 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
           tempMembers.push(status);
         }
       }
-      setMemberAccounts((old) => {
-        return [...old, ...tempMembers];
-      });
+      setMemberAccounts([...tempMembers]);
+
       if (approvedCounter < Number(threshold)) {
         setHaveAllMembersApproved(false);
       } else {
@@ -78,24 +90,18 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
     prepareMembers().catch((e) => {
       console.log(e);
     });
-  }, [location, apiPromise, migrationStatus]);
+  }, [location, apiPromise, migrationStatus, recentlyApprovedAddresses]);
 
   useEffect(() => {
     if (migrationStatus && location) {
       const destination = migrationStatus.migrateTo;
       const destinationInfo = getStore<DestinationInfo>("destinationInfo");
 
-      const searchParams = new URLSearchParams(location.search);
-      if (searchParams.get("destinationMembers")) {
+      if (destinationMembers.length > 0) {
         // this is a shared link
-
-        const destinationAddress = searchParams.get("destination");
-        const destinationMembers = (searchParams.get("destinationMembers") ?? "").split(",");
-        const type = searchParams.get("destinationType") as DestinationType;
-        const threshold = Number(searchParams.get("destinationThreshold"));
         setDestination({
           type,
-          threshold,
+          threshold: destinationThreshold,
           address: destinationAddress ?? "",
           members: destinationMembers,
         });
@@ -103,6 +109,7 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
         const value = destinationInfo[destination];
         const urlParams = new URLSearchParams(location.search);
 
+        //set the URL params accordingly for later use
         urlParams.set("destination", value.address);
         urlParams.set("destinationMembers", value.members.join(","));
         if (value.type === "Multisig Account") {
@@ -127,6 +134,26 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
     return <div>KTON Message</div>;
   };
 
+  const approveMigration = (signerAddress: string) => {
+    if (!destination?.address || typeof threshold === "undefined" || threshold === null) {
+      return;
+    }
+
+    setTransactionStatus(true);
+    onApproveMultisigMigration(address, destination.address, signerAddress, (isSuccessful) => {
+      if (isSuccessful) {
+        setRecentlyApprovedAddresses((old) => {
+          return [...old, signerAddress];
+        });
+      } else {
+        notification.error({
+          message: <div>{t(localeKeys.migrationFailed)}</div>,
+        });
+      }
+      setTransactionStatus(false);
+    });
+  };
+
   return (
     <div className={"flex flex-col"}>
       <div className={"flex flex-col gap-[20px]"}>
@@ -141,18 +168,27 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
                       <div className={"pb-[10px]"}>{t(localeKeys.progress)}</div>
                       <div className={"bg-black"}>
                         {memberAccounts?.map((item, index) => {
-                          let tag = "";
+                          let tag: JSX.Element | string = "";
+                          const isMyAccount = !!injectedAccounts?.find(
+                            (account) => account.formattedAddress.toLowerCase() === item.address.toLowerCase()
+                          );
                           if (initializer === item.address) {
                             tag = t(localeKeys.initialized);
                           } else if (item.hasApproved) {
                             tag = t(localeKeys.approved);
+                          } else if (isMyAccount) {
+                            tag = (
+                              <Button onClick={() => approveMigration(item.address)} className={"!h-[30px]"}>
+                                {t(localeKeys.approve)}
+                              </Button>
+                            );
                           } else {
                             tag = "-";
                           }
                           return (
                             <div
                               key={`${item.address}-${index}`}
-                              className={`flex justify-between py-[12px] border-b divider`}
+                              className={`flex justify-between items-center py-[12px] border-b divider`}
                             >
                               <div className={"px-[10px]"}>{item.name}</div>
                               <div className={"flex min-w-[470px] items-center gap-[5px] px-[10px]"}>

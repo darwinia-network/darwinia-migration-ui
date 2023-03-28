@@ -102,12 +102,19 @@ const initialState: WalletCtx = {
     return Promise.resolve(undefined);
   },
   onInitMultisigMigration: (
-    from: string,
     to: string,
     signerAddress: string,
     initializer: string,
     otherAccounts: string[],
     threshold: string,
+    callback: (isSuccessful: boolean) => void
+  ) => {
+    //ignore
+  },
+  onApproveMultisigMigration: (
+    from: string,
+    to: string,
+    signerAddress: string,
     callback: (isSuccessful: boolean) => void
   ) => {
     //ignore
@@ -631,7 +638,6 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   const onInitMultisigMigration = useCallback(
     async (
-      from: string,
       to: string,
       signerAddress: string,
       initializer: string,
@@ -641,30 +647,75 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     ) => {
       let unSubscription: UnSubscription;
       try {
-        console.log("imeingia=====");
         if (!apiPromise || !signer?.signRaw || !specName) {
           return callback(false);
         }
         setMultisigAccountMigratedJustNow(false);
-        console.log("level=====1");
 
         /*remove a digit from the network name such as pangolin2, etc*/
         const oldChainName = specName.slice(0, -1);
 
         const message = `I authorize the migration to ${to.toLowerCase()}, an unused address on ${specName}. Sign this message to authorize using the Substrate key associated with the account on ${oldChainName} that you wish to migrate.`;
-        console.log("level=====2", signerAddress);
         const { signature } = await signer.signRaw({
           address: signerAddress,
           type: "bytes",
           data: message,
         });
-        console.log("level=====3");
 
         const extrinsic = await apiPromise.tx.accountMigration.migrateMultisig(
           initializer,
           otherAccounts,
           threshold,
           to,
+          signature
+        );
+
+        unSubscription = (await extrinsic.send((result: SubmittableResult) => {
+          console.log(result.toHuman());
+          if (result.isCompleted && result.isFinalized) {
+            setMultisigAccountMigratedJustNow(true);
+            callback(true);
+          }
+        })) as unknown as UnSubscription;
+      } catch (e) {
+        setMultisigAccountMigratedJustNow(false);
+        console.log(e);
+        callback(false);
+      }
+
+      return () => {
+        if (unSubscription) {
+          unSubscription();
+        }
+      };
+    },
+    [apiPromise, signer, specName]
+  );
+
+  const onApproveMultisigMigration = useCallback(
+    async (from: string, to: string, signerAddress: string, callback: (isSuccessful: boolean) => void) => {
+      let unSubscription: UnSubscription;
+      try {
+        if (!apiPromise || !signer?.signRaw || !specName) {
+          return callback(false);
+        }
+        setMultisigAccountMigratedJustNow(false);
+
+        /*remove a digit from the network name such as pangolin2, etc*/
+        const oldChainName = specName.slice(0, -1);
+
+        const message = `I authorize the migration to ${to.toLowerCase()}, an unused address on ${specName}. Sign this message to authorize using the Substrate key associated with the account on ${oldChainName} that you wish to migrate.`;
+        const { signature } = await signer.signRaw({
+          address: signerAddress,
+          type: "bytes",
+          data: message,
+        });
+        console.log("to=====", to);
+        console.log("signerAddress=====", signerAddress);
+
+        const extrinsic = await apiPromise.tx.accountMigration.completeMultisigMigration(
+          from,
+          signerAddress,
           signature
         );
 
@@ -792,6 +843,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         setLoadingMultisigBalance,
         multisigContract,
         onInitMultisigMigration,
+        onApproveMultisigMigration,
         connectEthereumWallet,
         ethereumError,
         selectedEthereumAccount,

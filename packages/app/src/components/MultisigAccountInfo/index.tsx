@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import Identicon from "@polkadot/react-identicon";
 import copyIcon from "../../assets/images/copy.svg";
-import { Button, CheckboxGroup, Input, ModalEnhanced, SlideDownUp, Tooltip } from "@darwinia/ui";
+import { Button, CheckboxGroup, Input, ModalEnhanced, notification, SlideDownUp, Tooltip } from "@darwinia/ui";
 import caretIcon from "../../assets/images/caret-down.svg";
 import JazzIcon from "../JazzIcon";
 import { Tip } from "../MigrationForm";
@@ -35,11 +35,12 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
     selectedEthereumAccount,
     isCorrectEthereumChain,
     multisigMigrationStatus,
+    setTransactionStatus,
   } = useWallet();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const address = convertToSS58(params.get("address") ?? "", selectedNetwork?.prefix ?? 18);
-  const initializer = params.get("initializer");
+  const initializer = convertToSS58(params.get("initializer") ?? "", selectedNetwork?.prefix ?? 18);
   const members = (params.get("who") ?? "")
     .split(",")
     .map((address) => convertToSS58(address, selectedNetwork?.prefix ?? 18));
@@ -111,10 +112,6 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
       memberAddresses.unshift(selectedEthereumAccount);
       const sortedMembers = memberAddresses.sort();
       const thresholdNumber = EthersBigNumber.from(newAccountThreshold);
-      console.log("multisigContract", multisigContract);
-      console.log("publicKey", publicKey);
-      console.log("memberAddresses", sortedMembers);
-      console.log("thresholdNumber", thresholdNumber.toString());
       const multisigAddress = await multisigContract?.computeAddress(publicKey, sortedMembers, thresholdNumber);
       allMembersRef.current = [...sortedMembers];
       setNewMultisigAccountAddress(multisigAddress);
@@ -213,24 +210,17 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
       window.history.pushState({}, "", `/#${location.pathname}?${urlParams.toString()}`);
 
       const otherAccounts = members.filter((account) => account !== initializer);
-      //TODO update the signer accordingly
-      const signerAddress = initializer;
-      onInitMultisigMigration(
-        address,
-        destination,
-        signerAddress,
-        initializer,
-        otherAccounts,
-        threshold,
-        (isSuccessful) => {
-          if (isSuccessful) {
-            setConfirmationModalVisibility(false);
-          } else {
-            console.log("something went wrong in migration");
-          }
-          console.log("isSuccessful======", isSuccessful);
+
+      onInitMultisigMigration(destination, initializer, initializer, otherAccounts, threshold, (isSuccessful) => {
+        setProcessingMigration(false);
+        if (isSuccessful) {
+          setConfirmationModalVisibility(false);
+        } else {
+          notification.error({
+            message: <div>{t(localeKeys.migrationFailed)}</div>,
+          });
         }
-      );
+      });
     } catch (e) {
       console.log(e);
       setProcessingMigration(false);
@@ -241,6 +231,25 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
     const addresses = [...memberAddresses];
     addresses.splice(index, 1);
     setMemberAddresses(addresses);
+  };
+
+  const onDeploy = async () => {
+    try {
+      setTransactionStatus(true);
+      const publicKey = getPublicKey(address);
+      const ethereumMemberAddresses = memberAddresses.map((item) => item.address);
+
+      if (selectedEthereumAccount) {
+        ethereumMemberAddresses.unshift(selectedEthereumAccount);
+      }
+      const sortedMembers = ethereumMemberAddresses.sort();
+      const thresholdNumber = EthersBigNumber.from(newAccountThreshold);
+      const deploymentResult = await multisigContract?.deploy(publicKey, sortedMembers, thresholdNumber);
+      setTransactionStatus(false);
+    } catch (e) {
+      setTransactionStatus(false);
+      console.log(e);
+    }
   };
 
   const onMemberAddressChanged = (index: number, value: string) => {
@@ -286,7 +295,13 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
         <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
           <div>{t(localeKeys.oneMoreStep)}</div>
           <div className={"px-[5px]"}>
-            <Button>{t(localeKeys.deploy)}</Button>
+            <Button
+              onClick={() => {
+                onDeploy();
+              }}
+            >
+              {t(localeKeys.deploy)}
+            </Button>
           </div>
           <div>{t(localeKeys.toCompleteMigration)}</div>
         </div>

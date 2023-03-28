@@ -107,4 +107,6 @@ export const localeKeys = {
   selectYourAddress: "selectYourAddress",
   initialized: "initialized",
   approved: "approved",
+  migrationFailed: "migrationFailed",
+  approve: "approve",
 };
