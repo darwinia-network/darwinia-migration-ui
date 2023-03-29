@@ -156,11 +156,16 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [multisigMigrationStatus, setMultisigMigrationStatus] = useState<DarwiniaAccountMigrationMultisig>();
 
   const { currentBlock } = useBlock(apiPromise);
-  const { getAccountAsset } = useLedger({
+  const { getAccountAsset, isLoadingWalletLedger } = useLedger({
     apiPromise,
     selectedAccount: selectedAccount?.formattedAddress,
     selectedNetwork,
+    isWalletCaller: true,
   });
+
+  useEffect(() => {
+    setLoadingMultisigBalance(isLoadingWalletLedger);
+  }, [isLoadingWalletLedger]);
 
   const setSelectedWallet = useCallback((name: SupportedWallet | null | undefined) => {
     _setSelectedWallet(name);
@@ -322,7 +327,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
           formattedAddress: convertToSS58(forcedAccountAddress.current, selectedNetwork?.prefix ?? 18),
         });
       }
-      if (customAccounts.length > 0) {
+      if (customAccounts.length > 0 && !isMultisig) {
         setSelectedAccount(customAccounts[0]);
       }
       setInjectedAccounts(customAccounts);

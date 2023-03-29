@@ -195,6 +195,10 @@ const MultisigMigrationProcess = () => {
   };
 
   useEffect(() => {
+    isInitializingLocalAccountsRef.current = true;
+  }, [selectedNetwork]);
+
+  useEffect(() => {
     if (!apiPromise || !currentBlock || !isInitializingLocalAccountsRef.current) {
       return;
     }
@@ -207,7 +211,7 @@ const MultisigMigrationProcess = () => {
     initData().catch((e) => {
       console.log(e);
     });
-  }, [apiPromise, currentBlock]);
+  }, [apiPromise, currentBlock, selectedNetwork]);
 
   useEffect(() => {
     if (currentAccount.current?.address !== selectedAccount?.address) {

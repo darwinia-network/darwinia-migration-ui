@@ -2,7 +2,7 @@ import { useAppTranslation, localeKeys } from "@darwinia/app-locale";
 import { useMobile, useWallet } from "@darwinia/app-providers";
 import migrationIcon from "../assets/images/migration.svg";
 import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { dAppSupportedWallets } from "@darwinia/app-config";
 
 const MultisigHome = () => {

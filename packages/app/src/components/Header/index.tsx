@@ -1,4 +1,4 @@
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import logoIcon from "../../assets/images/logo.png";
 import caretIcon from "../../assets/images/caret-down.svg";
 import { useEffect, useRef, useState } from "react";
@@ -25,7 +25,9 @@ const Header = () => {
   } = useWallet();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const selectAccountModalRef = useRef<SelectAccountModalRef>(null);
+  const shouldRefreshPage = useRef<boolean>(false);
 
   /* set the wallet network accordingly */
   useEffect(() => {
@@ -38,7 +40,7 @@ const Header = () => {
         // the URL contains the network param
         const foundNetwork = supportedNetworks.find((item) => item.name.toLowerCase() === network.toLowerCase());
         if (foundNetwork) {
-          changeConnectedNetwork(foundNetwork);
+          changeSelectedNetwork(foundNetwork);
         }
       }
       if (account) {
@@ -47,7 +49,7 @@ const Header = () => {
     } else {
       /* use test network by default */
       const index = supportedNetworks.findIndex((network) => network.name === "Crab");
-      changeConnectedNetwork(supportedNetworks[index]);
+      changeSelectedNetwork(supportedNetworks[index]);
     }
   }, []);
 
@@ -58,6 +60,11 @@ const Header = () => {
 
     searchParams.set("network", selectedNetwork.name);
     setSearchParams(searchParams);
+    if (shouldRefreshPage.current) {
+      window.location.reload();
+    } else {
+      shouldRefreshPage.current = true;
+    }
   }, [selectedNetwork]);
 
   const changeConnectedNetwork = (network: ChainConfig) => {

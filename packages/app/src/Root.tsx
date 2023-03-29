@@ -19,6 +19,7 @@ const Root = () => {
     setMultisig,
     isLoadingBalance,
     isLoadingMultisigBalance,
+    isMultisig,
   } = useWallet();
   const { isLoadingLedger, isLoadingMigratedLedger } = useStorage();
   const [loading, setLoading] = useState<boolean | undefined>(false);
@@ -27,14 +28,17 @@ const Root = () => {
   const { t } = useAppTranslation();
 
   useEffect(() => {
-    setLoading(
-      isRequestingWalletConnection ||
-        isLoadingTransaction ||
-        isLoadingLedger ||
-        isLoadingMigratedLedger ||
-        isLoadingBalance ||
-        isLoadingMultisigBalance
-    );
+    if (isMultisig) {
+      setLoading(isRequestingWalletConnection || isLoadingTransaction || isLoadingBalance || isLoadingMultisigBalance);
+    } else {
+      setLoading(
+        isRequestingWalletConnection ||
+          isLoadingTransaction ||
+          isLoadingLedger ||
+          isLoadingMigratedLedger ||
+          isLoadingBalance
+      );
+    }
   }, [
     isRequestingWalletConnection,
     isWalletConnected,

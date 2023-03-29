@@ -21,11 +21,13 @@ interface Params {
   apiPromise: ApiPromise | undefined;
   selectedAccount: string | undefined;
   selectedNetwork: ChainConfig | undefined;
+  isWalletCaller?: boolean;
 }
 
-const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => {
+const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCaller = false }: Params) => {
   const [isLoadingLedger, setLoadingLedger] = useState<boolean>(false);
   const [isLoadingMigratedLedger, setLoadingMigratedLedger] = useState<boolean>(false);
+  const [isLoadingWalletLedger, setLoadingWalletLedger] = useState<boolean>(false);
   const isInitialLoad = useRef<boolean>(true);
   const isInitialMigratedDataLoad = useRef<boolean>(true);
   /*staking asset distribution*/
@@ -38,9 +40,13 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
     if (selectedAccount) {
       setStakedAssetDistribution(undefined);
       setMigratedAssetDistribution(undefined);
-      isInitialLoad.current = true;
-      setLoadingMigratedLedger(true);
-      setLoadingLedger(true);
+      if (!isWalletCaller) {
+        isInitialLoad.current = true;
+        setLoadingMigratedLedger(true);
+        setLoadingLedger(true);
+      } else {
+        setLoadingWalletLedger(true);
+      }
     }
   }, [selectedAccount, selectedNetwork]);
 
@@ -59,6 +65,8 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
           setLoadingLedger(false);
           return Promise.resolve(undefined);
         }
+
+        setLoadingWalletLedger(true);
         const api = isDataAtPoint ? await apiPromise.at(parentBlockHash ?? "") : apiPromise;
 
         if (showLoading) {
@@ -321,6 +329,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
         } else {
           setLoadingLedger(false);
         }
+        setLoadingWalletLedger(false);
         return Promise.resolve(asset);
       };
       const asset = await getStakingLedgerAndDeposits().catch((e) => {
@@ -361,6 +370,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
         }
         setLoadingMigratedLedger(false);
         setLoadingLedger(false);
+        setLoadingWalletLedger(false);
 
         // console.log(e);
         //ignore
@@ -393,6 +403,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork }: Params) => 
     isLoadingMigratedLedger,
     retrieveMigratedAsset,
     migratedAssetDistribution,
+    isLoadingWalletLedger,
   };
 };
 
