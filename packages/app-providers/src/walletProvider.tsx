@@ -205,7 +205,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   /*This will be fired once the connection to the wallet is successful*/
   useEffect(() => {
-    if (!selectedAccount || !selectedNetwork) {
+    if (!selectedNetwork) {
       return;
     }
     //refresh the page with the newly selected account
@@ -218,7 +218,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     );
 
     setMultisigContract(multisigContract);
-  }, [selectedAccount, selectedNetwork]);
+  }, [selectedNetwork]);
 
   const disconnectWallet = useCallback(() => {
     setSelectedAccount(undefined);
@@ -412,8 +412,9 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
               .map(({ address, genesisHash, name, type }) => ({ address, type, meta: { genesisHash, name, source } }));
           }
         }
+
         accounts.forEach((account) => {
-          keyring.saveAddress(account.address, account.meta);
+          keyring.saveAddress(convertToSS58(account.address, selectedNetwork.prefix), account.meta);
         });
         injectedAccountsRef.current = accounts;
 
@@ -462,7 +463,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       const selectedNetworkChainId = convertNumberToHex(selectedNetwork?.chainId);
       setCorrectEthereumChain(chainId === selectedNetworkChainId);
       /*Metamask recommends reloading the whole page ref: https://docs.metamask.io/guide/ethereum-provider.html#events */
-      // window.location.reload();
+      window.location.reload();
     };
 
     window.ethereum?.on<string[]>("accountsChanged", onAccountsChanged);

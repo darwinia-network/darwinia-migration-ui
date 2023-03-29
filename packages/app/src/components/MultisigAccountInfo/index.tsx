@@ -113,6 +113,10 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
       const sortedMembers = memberAddresses.sort();
       const thresholdNumber = EthersBigNumber.from(newAccountThreshold);
       const multisigAddress = await multisigContract?.computeAddress(publicKey, sortedMembers, thresholdNumber);
+      if (!multisigAddress) {
+        console.log("multisig account not generated");
+        return;
+      }
       allMembersRef.current = [...sortedMembers];
       setNewMultisigAccountAddress(multisigAddress);
       setIsGeneratingMultisigAccount(false);
