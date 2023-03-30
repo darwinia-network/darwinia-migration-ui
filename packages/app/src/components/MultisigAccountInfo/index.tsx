@@ -12,7 +12,7 @@ import helpIcon from "../../assets/images/help.svg";
 import trashIcon from "../../assets/images/trash-bin.svg";
 import { isValidNumber, isEthereumAddress, getPublicKey, convertToSS58, setStore, getStore } from "@darwinia/app-utils";
 import { BigNumber as EthersBigNumber } from "ethers";
-import { DestinationInfo, DestinationType } from "@darwinia/app-types";
+import { DestinationInfo, DestinationType, MultisigParams } from "@darwinia/app-types";
 
 interface MultisigMemberAddress {
   address: string;
@@ -202,7 +202,7 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
       const oldData = getStore("destinationInfo") ?? {};
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      oldData[destination] = {
+      oldData[address] = {
         threshold: Number(newAccountThreshold),
         address: destination,
         type: type,
@@ -214,17 +214,30 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
       window.history.pushState({}, "", `/#${location.pathname}?${urlParams.toString()}`);
 
       const otherAccounts = members.filter((account) => account !== initializer);
+      const multisigParams: MultisigParams = {
+        address: newMultisigAccountAddress,
+        threshold: Number(newAccountThreshold ?? 0),
+        members: allMembersRef.current,
+      };
 
-      onInitMultisigMigration(destination, initializer, initializer, otherAccounts, threshold, (isSuccessful) => {
-        setProcessingMigration(false);
-        if (isSuccessful) {
-          setConfirmationModalVisibility(false);
-        } else {
-          notification.error({
-            message: <div>{t(localeKeys.migrationFailed)}</div>,
-          });
+      onInitMultisigMigration(
+        destination,
+        initializer,
+        initializer,
+        otherAccounts,
+        threshold,
+        multisigParams,
+        (isSuccessful) => {
+          setProcessingMigration(false);
+          if (isSuccessful) {
+            setConfirmationModalVisibility(false);
+          } else {
+            notification.error({
+              message: <div>{t(localeKeys.migrationFailed)}</div>,
+            });
+          }
         }
-      });
+      );
     } catch (e) {
       console.log(e);
       setProcessingMigration(false);

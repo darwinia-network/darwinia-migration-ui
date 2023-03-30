@@ -8,11 +8,18 @@ import MigrationSummary from "../components/MigrationSummary";
 import { useWallet } from "@darwinia/app-providers";
 import { convertToSS58 } from "@darwinia/app-utils";
 import { DarwiniaAccountMigrationMultisig } from "@darwinia/app-types";
+import { useQuery } from "@apollo/client";
+import { FIND_MIGRATION_BY_SOURCE_ADDRESS } from "@darwinia/app-config";
 
 const MultisigAccountMigrationSummary = () => {
   const { t } = useAppTranslation();
-  const { checkMultisigAccountMigrationStatus, selectedNetwork, apiPromise, isMultisigAccountMigratedJustNow } =
-    useWallet();
+  const {
+    checkMultisigAccountMigrationStatus,
+    selectedNetwork,
+    apiPromise,
+    isMultisigAccountMigratedJustNow,
+    isMultisigAccountDeployed,
+  } = useWallet();
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -21,9 +28,24 @@ const MultisigAccountMigrationSummary = () => {
   const [isIsWaitingToDeploy, setIsWaitingToDeploy] = useState<boolean>(false);
   const [multisigMigrationStatus, setMultisigMigrationStatus] = useState<DarwiniaAccountMigrationMultisig>();
 
+  /*const {
+    loading: isLoading,
+    data: migrationResult,
+    error,
+    refetch,
+  } = useQuery<MigrationResult, MigrationQuery>(FIND_MIGRATION_BY_SOURCE_ADDRESS, {
+    variables: {
+      accountAddress: selectedAccount?.formattedAddress ?? "",
+    },
+  });*/
+
   useEffect(() => {
     const checkStatus = async () => {
       const result = await checkMultisigAccountMigrationStatus(address);
+      if (!result) {
+        //the account either doesn't exist or was already migrated
+        //check subquery to see if it was migrated
+      }
       setMultisigMigrationStatus(result);
     };
     if (apiPromise || isMultisigAccountMigratedJustNow) {

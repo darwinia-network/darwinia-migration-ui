@@ -18,6 +18,7 @@ import {
   DarwiniaStakingLedger,
   AssetDistribution,
   DarwiniaAccountMigrationMultisig,
+  MultisigParams,
 } from "@darwinia/app-types";
 import { ApiPromise, WsProvider, SubmittableResult } from "@polkadot/api";
 import { web3Accounts, web3Enable } from "@polkadot/extension-dapp";
@@ -35,6 +36,7 @@ import useLedger from "./hooks/useLedger";
 import { Contract, ethers } from "ethers";
 import { HexString } from "@polkadot/util/types";
 import { Codec } from "@polkadot/types/types";
+import { Web3Provider } from "@ethersproject/providers";
 
 /*This is just a blueprint, no value will be stored in here*/
 const initialState: WalletCtx = {
@@ -107,6 +109,7 @@ const initialState: WalletCtx = {
     initializer: string,
     otherAccounts: string[],
     threshold: string,
+    multisigParams: MultisigParams,
     callback: (isSuccessful: boolean) => void
   ) => {
     //ignore
@@ -118,6 +121,9 @@ const initialState: WalletCtx = {
     callback: (isSuccessful: boolean) => void
   ) => {
     //ignore
+  },
+  isMultisigAccountDeployed: (accountAddress: string) => {
+    return Promise.resolve(false);
   },
 };
 
@@ -152,6 +158,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [isLoadingMultisigBalance, setLoadingMultisigBalance] = useState<boolean>(false);
   const [selectedWallet, _setSelectedWallet] = useState<SupportedWallet | null | undefined>();
   const [multisigContract, setMultisigContract] = useState<Contract>();
+  const [provider, setProvider] = useState<Web3Provider>();
   const [isCorrectEthereumChain, setCorrectEthereumChain] = useState<boolean>(false);
   const [multisigMigrationStatus, setMultisigMigrationStatus] = useState<DarwiniaAccountMigrationMultisig>();
 
@@ -216,7 +223,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       selectedNetwork.contractInterface.multisig,
       newSigner
     );
-
+    setProvider(newProvider);
     setMultisigContract(multisigContract);
   }, [selectedNetwork]);
 
@@ -649,6 +656,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       initializer: string,
       otherAccounts: string[],
       threshold: string,
+      multisigParams: MultisigParams,
       callback: (isSuccessful: boolean) => void
     ) => {
       let unSubscription: UnSubscription;
@@ -673,7 +681,8 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
           otherAccounts,
           threshold,
           to,
-          signature
+          signature,
+          multisigParams
         );
 
         unSubscription = (await extrinsic.send((result: SubmittableResult) => {
@@ -819,6 +828,15 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     [apiPromise, selectedNetwork]
   );
 
+  const isMultisigAccountDeployed = useCallback(
+    async (accountAddress: string): Promise<boolean> => {
+      const result = await provider?.getCode(accountAddress);
+      console.log("result====", result);
+      return result !== "0x";
+    },
+    [provider]
+  );
+
   return (
     <WalletContext.Provider
       value={{
@@ -858,6 +876,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         multisigMigrationStatus,
         getAccountPrettyName,
         isMultisigAccountMigratedJustNow,
+        isMultisigAccountDeployed,
       }}
     >
       {children}

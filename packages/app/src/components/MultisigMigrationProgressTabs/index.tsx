@@ -43,7 +43,6 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
     .split(",")
     .map((address) => convertToSS58(address, selectedNetwork?.prefix ?? 18));
   const threshold = params.get("threshold");
-  const initializer = convertToSS58(params.get("initializer") ?? "", selectedNetwork?.prefix ?? 18);
   const destinationAddress = params.get("destination");
   const destinationMembers = (params.get("destinationMembers") ?? "").split(",").filter((item) => item.trim() !== "");
   const type = params.get("destinationType") as DestinationType;
@@ -94,7 +93,6 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
 
   useEffect(() => {
     if (migrationStatus && location) {
-      const destination = migrationStatus.migrateTo;
       const destinationInfo = getStore<DestinationInfo>("destinationInfo");
 
       if (destinationMembers.length > 0) {
@@ -105,8 +103,8 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
           address: destinationAddress ?? "",
           members: destinationMembers,
         });
-      } else if (destinationInfo && destinationInfo[destination]) {
-        const value = destinationInfo[destination];
+      } else if (destinationInfo && destinationInfo[address]) {
+        const value = destinationInfo[address];
         const urlParams = new URLSearchParams(location.search);
 
         //set the URL params accordingly for later use
@@ -172,9 +170,7 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
                           const isMyAccount = !!injectedAccounts?.find(
                             (account) => account.formattedAddress.toLowerCase() === item.address.toLowerCase()
                           );
-                          if (initializer === item.address) {
-                            tag = t(localeKeys.initialized);
-                          } else if (item.hasApproved) {
+                          if (item.hasApproved) {
                             tag = t(localeKeys.approved);
                           } else if (isMyAccount) {
                             tag = (

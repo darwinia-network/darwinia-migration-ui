@@ -102,6 +102,7 @@ export interface WalletCtx {
     initializer: string,
     otherAccounts: string[],
     threshold: string,
+    multisigParams: MultisigParams,
     callback: (isSuccessful: boolean) => void
   ) => void;
   onApproveMultisigMigration: (
@@ -131,6 +132,7 @@ export interface WalletCtx {
   multisigMigrationStatus: DarwiniaAccountMigrationMultisig | undefined;
   getAccountPrettyName: (address: string) => Promise<string | undefined>;
   isMultisigAccountMigratedJustNow: boolean | undefined;
+  isMultisigAccountDeployed: (accountAddress: string) => Promise<boolean>;
 }
 
 export interface SpVersionRuntimeVersion extends Struct {
@@ -161,3 +163,9 @@ export interface DarwiniaAccountMigrationMultisig {
 }
 
 export type DestinationType = "General Account" | "Multisig Account";
+
+export interface MultisigParams {
+  address: string;
+  members: string[];
+  threshold: number;
+}

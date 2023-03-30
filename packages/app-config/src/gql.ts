@@ -12,3 +12,14 @@ export const FIND_MIGRATION_BY_SOURCE_ADDRESS = gql`
     }
   }
 `;
+
+export const FIND_MULTISIG_MIGRATION_BY_SOURCE_ADDRESS = gql`
+  query migrationQuery($accountAddress: String!) {
+    multisigAccountMigration(id: $accountAddress) {
+      id
+      params
+      blockTime
+      blockNumber
+    }
+  }
+`;
