@@ -102,7 +102,7 @@ export interface WalletCtx {
     initializer: string,
     otherAccounts: string[],
     threshold: string,
-    multisigParams: MultisigParams,
+    multisigDestinationParams: MultisigDestinationParams | null,
     callback: (isSuccessful: boolean) => void
   ) => void;
   onApproveMultisigMigration: (
@@ -123,16 +123,18 @@ export interface WalletCtx {
     name?: string
   ) => Promise<MultisigAccount | undefined>;
   getAccountBalance: (account: string) => Promise<AssetDistribution | undefined>;
-  checkMultisigAccountMigrationStatus: (account: string) => Promise<undefined | DarwiniaAccountMigrationMultisig>;
+  checkMultisigAccountMigrationStatus: (account: string) => Promise<undefined | DarwiniaSourceAccountMigrationMultisig>;
   apiPromise: ApiPromise | undefined;
   currentBlock: CurrentBlock | undefined;
   isLoadingMultisigBalance: boolean | undefined;
   setLoadingMultisigBalance: (isLoading: boolean) => void;
   multisigContract: Contract | undefined;
-  multisigMigrationStatus: DarwiniaAccountMigrationMultisig | undefined;
+  multisigMigrationStatus: DarwiniaSourceAccountMigrationMultisig | undefined;
   getAccountPrettyName: (address: string) => Promise<string | undefined>;
   isMultisigAccountMigratedJustNow: boolean | undefined;
   isMultisigAccountDeployed: (accountAddress: string) => Promise<boolean>;
+  isCheckingMultisigCompleted: boolean | undefined;
+  setIsCheckingMultisigCompleted: (isLoading: boolean) => void;
 }
 
 export interface SpVersionRuntimeVersion extends Struct {
@@ -156,7 +158,7 @@ export interface CurrentBlock {
   timestamp: number;
 }
 
-export interface DarwiniaAccountMigrationMultisig {
+export interface DarwiniaSourceAccountMigrationMultisig {
   threshold: number;
   migrateTo: string;
   members: [string, boolean][];
@@ -164,7 +166,7 @@ export interface DarwiniaAccountMigrationMultisig {
 
 export type DestinationType = "General Account" | "Multisig Account";
 
-export interface MultisigParams {
+export interface MultisigDestinationParams {
   address: string;
   members: string[];
   threshold: number;

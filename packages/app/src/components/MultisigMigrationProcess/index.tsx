@@ -279,9 +279,9 @@ const MultisigMigrationProcess = () => {
       setCheckingAccountExistence(true);
       const thresholdNumber = Number(threshold);
       const account = await checkDarwiniaOneMultisigAccount(selectedAddress, signatories, thresholdNumber, name);
-      setCheckingAccountExistence(false);
 
       if (typeof account === "undefined") {
+        setCheckingAccountExistence(false);
         notification.success({
           message: <div>{t(localeKeys.multisigCreationFailed)}</div>,
           duration: 15000,
@@ -290,13 +290,16 @@ const MultisigMigrationProcess = () => {
       }
       const multisigAccounts: MultisigAccount[] = getStore("multisigAccounts") ?? [];
       //remove the account is it was already available in the local storage
-      const filteredAccounts = multisigAccounts.filter((account) => account.address !== account.address);
+      const filteredAccounts = multisigAccounts.filter(
+        (multisigAccount) => multisigAccount.address !== account.address
+      );
       filteredAccounts.push(account);
       setStore("multisigAccounts", filteredAccounts);
       const data = await prepareMultisigAccountData([account]);
       setMultisigAccountsList((old) => {
         return [...old, ...data];
       });
+      setCheckingAccountExistence(false);
       //hide modal
       onCloseAddAccountModal();
     } catch (e) {
@@ -347,7 +350,7 @@ const MultisigMigrationProcess = () => {
 
   return (
     <div className={"flex flex-1 flex-col gap-[30px]"}>
-      <div className={"flex flex-col flex-1 card gap-[20px]"}>
+      <div className={"flex flex-col flex-1 card gap-[10px]"}>
         <div className={"w-full"}>
           <div className={"divider border-b pb-[10px] flex justify-between items-center"}>
             <div>{t(localeKeys.multisig)}</div>
@@ -360,7 +363,7 @@ const MultisigMigrationProcess = () => {
         </div>
 
         {multisigAccountsList.length > 0 ? (
-          <Table dataSource={multisigAccountsList} columns={columns} />
+          <Table className={"!p-0"} dataSource={multisigAccountsList} columns={columns} />
         ) : (
           <div className={"flex-1 flex justify-center items-center"}>
             <div className={"flex flex-col items-center gap-[10px]"}>

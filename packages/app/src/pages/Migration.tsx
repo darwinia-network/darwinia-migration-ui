@@ -18,7 +18,7 @@ export interface AccountMigration {
   transactionHash: string;
 }
 
-interface MigrationResult {
+export interface MigrationResult {
   accountMigration?: AccountMigration;
 }
 

@@ -12,11 +12,17 @@ import helpIcon from "../../assets/images/help.svg";
 import infoIcon from "../../assets/images/info.svg";
 import { useWallet } from "@darwinia/app-providers";
 import { convertToSS58, getStore, prettifyNumber, prettifyTooltipNumber } from "@darwinia/app-utils";
-import { DarwiniaAccountMigrationMultisig, Destination, DestinationInfo, DestinationType } from "@darwinia/app-types";
+import {
+  DarwiniaSourceAccountMigrationMultisig,
+  Destination,
+  DestinationInfo,
+  DestinationType,
+} from "@darwinia/app-types";
 
 interface Props {
-  migrationStatus: DarwiniaAccountMigrationMultisig | undefined;
+  migrationStatus: DarwiniaSourceAccountMigrationMultisig | undefined;
   isWaitingToDeploy: boolean;
+  isSuccessfullyMigrated: boolean;
 }
 
 interface MemberStatus {
@@ -25,7 +31,7 @@ interface MemberStatus {
   hasApproved: boolean;
 }
 
-const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: Props) => {
+const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy, isSuccessfullyMigrated }: Props) => {
   const { t } = useAppTranslation();
   const [memberAccounts, setMemberAccounts] = useState<MemberStatus[]>([]);
   const location = useLocation();
@@ -45,11 +51,11 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
   const threshold = params.get("threshold");
   const destinationAddress = params.get("destination");
   const destinationMembers = (params.get("destinationMembers") ?? "").split(",").filter((item) => item.trim() !== "");
-  const type = params.get("destinationType") as DestinationType;
-  const destinationThreshold = Number(params.get("destinationThreshold"));
-  const [haveAllMembersApproved, setHaveAllMembersApproved] = useState<boolean>(false);
+  const destinationType: DestinationType = destinationMembers.length > 0 ? "Multisig Account" : "General Account";
+  const destinationThreshold = Number(params.get("destinationThreshold") ?? 0);
   const [destination, setDestination] = useState<Destination>();
   const [recentlyApprovedAddresses, setRecentlyApprovedAddresses] = useState<string[]>([]);
+  const showWaitingDeploy = !isWaitingToDeploy && !isSuccessfullyMigrated;
 
   useEffect(() => {
     if (!apiPromise || !migrationStatus || !location) {
@@ -58,7 +64,6 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
 
     const prepareMembers = async () => {
       setMemberAccounts([]);
-      let approvedCounter = 0;
       const tempMembers: MemberStatus[] = [];
       for (let i = 0; i < members.length; i++) {
         const address = members[i];
@@ -66,9 +71,6 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
         if (account) {
           const hasApproved = account[1] || recentlyApprovedAddresses.includes(account[0]);
           const name = (await getAccountPrettyName(address)) ?? "";
-          if (hasApproved) {
-            approvedCounter = approvedCounter + 1;
-          }
           const status: MemberStatus = {
             address,
             hasApproved,
@@ -78,12 +80,6 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
         }
       }
       setMemberAccounts([...tempMembers]);
-
-      if (approvedCounter < Number(threshold)) {
-        setHaveAllMembersApproved(false);
-      } else {
-        setHaveAllMembersApproved(true);
-      }
     };
 
     prepareMembers().catch((e) => {
@@ -98,7 +94,7 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
       if (destinationMembers.length > 0) {
         // this is a shared link
         setDestination({
-          type,
+          type: destinationType,
           threshold: destinationThreshold,
           address: destinationAddress ?? "",
           members: destinationMembers,
@@ -109,11 +105,13 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
 
         //set the URL params accordingly for later use
         urlParams.set("destination", value.address);
-        urlParams.set("destinationMembers", value.members.join(","));
         if (value.type === "Multisig Account") {
           urlParams.set("destinationThreshold", `${value.threshold}`);
+          urlParams.set("destinationMembers", value.members.join(","));
+        } else {
+          urlParams.delete("destinationThreshold");
+          urlParams.delete("destinationMembers");
         }
-        urlParams.set("destinationType", value.type);
 
         window.history.pushState({}, "", `/#${location.pathname}?${urlParams.toString()}`);
         setDestination(value);
@@ -186,7 +184,9 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
                               key={`${item.address}-${index}`}
                               className={`flex justify-between items-center py-[12px] border-b divider`}
                             >
-                              <div className={"px-[10px]"}>{item.name}</div>
+                              <div className={"px-[10px] min-w-[200px]"}>
+                                {isMyAccount ? item.name : t(localeKeys.member).toUpperCase()}
+                              </div>
                               <div className={"flex min-w-[470px] items-center gap-[5px] px-[10px]"}>
                                 <Identicon
                                   value={item.address}
@@ -211,7 +211,7 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy }: P
                           <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.destination)}</div>
                           <div className={"flex-1 flex gap-[10px] items-center"}>
                             <div>{destination?.address}</div>
-                            {!haveAllMembersApproved && (
+                            {showWaitingDeploy && (
                               <div className={"text-12 bg-primary px-[5px] py-[4px] flex gap-[4px]"}>
                                 <Tooltip message={t(localeKeys.waitingDeployMessage)}>
                                   <img className={"w-[16px] h-[16px]"} src={infoIcon} alt="icon" />

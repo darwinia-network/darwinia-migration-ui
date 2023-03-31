@@ -12,7 +12,7 @@ import helpIcon from "../../assets/images/help.svg";
 import trashIcon from "../../assets/images/trash-bin.svg";
 import { isValidNumber, isEthereumAddress, getPublicKey, convertToSS58, setStore, getStore } from "@darwinia/app-utils";
 import { BigNumber as EthersBigNumber } from "ethers";
-import { DestinationInfo, DestinationType, MultisigParams } from "@darwinia/app-types";
+import { DestinationInfo, DestinationType, MultisigDestinationParams } from "@darwinia/app-types";
 
 interface MultisigMemberAddress {
   address: string;
@@ -20,11 +20,11 @@ interface MultisigMemberAddress {
 }
 
 interface Props {
-  isIsWaitingToDeploy: boolean;
+  isWaitingToDeploy: boolean;
   isSuccessfullyMigrated: boolean;
 }
 
-const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Props) => {
+const MultisigAccountInfo = ({ isWaitingToDeploy, isSuccessfullyMigrated }: Props) => {
   const { t } = useAppTranslation();
   const {
     injectedAccounts,
@@ -34,7 +34,6 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
     connectEthereumWallet,
     selectedEthereumAccount,
     isCorrectEthereumChain,
-    multisigMigrationStatus,
     setTransactionStatus,
   } = useWallet();
   const location = useLocation();
@@ -46,6 +45,9 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
     .map((address) => convertToSS58(address, selectedNetwork?.prefix ?? 18));
   const name = params.get("name");
   const threshold = params.get("threshold");
+  const destinationMembers = (params.get("destinationMembers") ?? "").split(",").filter((item) => item.trim() !== "");
+  const destinationType: DestinationType = destinationMembers.length > 0 ? "Multisig Account" : "General Account";
+  const destinationThreshold = params.get("destinationThreshold");
   const [isMemberSectionVisible, setMemberSectionVisible] = useState<boolean>(true);
   const [isMigrateModalVisible, setMigrationModalVisible] = useState<boolean>(false);
   const [destinationAddress, setDestinationAddress] = useState("");
@@ -61,9 +63,11 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
   ]);
   //stores sorted members account address
   const allMembersRef = useRef<string[]>([]);
-  const [newAccountThreshold, setNewAccountThreshold] = useState<string>("");
+  const [newAccountThreshold, setNewAccountThreshold] = useState<string>(destinationThreshold ?? "");
   const [newMultisigAccountAddress, setNewMultisigAccountAddress] = useState<string>("");
   const [isIsGeneratingMultisigAccount, setIsGeneratingMultisigAccount] = useState<boolean>(false);
+
+  const canMigrate = !isWaitingToDeploy && !isSuccessfullyMigrated;
 
   const destinationTabs = [
     {
@@ -188,16 +192,20 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
     }
     try {
       setProcessingMigration(true);
-      const destination = activeDestinationTab === 1 ? destinationAddress : newMultisigAccountAddress;
-      const type: DestinationType = activeDestinationTab === 1 ? "General Account" : "Multisig Account";
+      const isMigratingToGeneralAccount = activeDestinationTab === 1;
+      const destination = isMigratingToGeneralAccount ? destinationAddress : newMultisigAccountAddress;
+      const type: DestinationType = isMigratingToGeneralAccount ? "General Account" : "Multisig Account";
 
       const urlParams = new URLSearchParams(location.search);
       urlParams.set("destination", destination);
-      urlParams.set("destinationMembers", allMembersRef.current.join(","));
-      if (activeDestinationTab === 2) {
+
+      if (!isMigratingToGeneralAccount) {
         urlParams.set("destinationThreshold", newAccountThreshold);
+        urlParams.set("destinationMembers", allMembersRef.current.join(","));
+      } else {
+        urlParams.delete("destinationThreshold");
+        urlParams.delete("destinationMembers");
       }
-      urlParams.set("destinationType", type);
 
       const oldData = getStore("destinationInfo") ?? {};
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -214,11 +222,13 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
       window.history.pushState({}, "", `/#${location.pathname}?${urlParams.toString()}`);
 
       const otherAccounts = members.filter((account) => account !== initializer);
-      const multisigParams: MultisigParams = {
+      const multisigDestinationParams: MultisigDestinationParams = {
         address: newMultisigAccountAddress,
         threshold: Number(newAccountThreshold ?? 0),
         members: allMembersRef.current,
       };
+
+      const params = type === "General Account" ? null : multisigDestinationParams;
 
       onInitMultisigMigration(
         destination,
@@ -226,7 +236,7 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
         initializer,
         otherAccounts,
         threshold,
-        multisigParams,
+        params,
         (isSuccessful) => {
           setProcessingMigration(false);
           if (isSuccessful) {
@@ -254,14 +264,18 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
     try {
       setTransactionStatus(true);
       const publicKey = getPublicKey(address);
-      const ethereumMemberAddresses = memberAddresses.map((item) => item.address);
+      const ethereumMemberAddresses =
+        destinationMembers.length > 0 ? destinationMembers : memberAddresses.map((item) => item.address);
 
-      if (selectedEthereumAccount) {
+      if (selectedEthereumAccount && destinationMembers.length === 0) {
         ethereumMemberAddresses.unshift(selectedEthereumAccount);
       }
       const sortedMembers = ethereumMemberAddresses.sort();
       const thresholdNumber = EthersBigNumber.from(newAccountThreshold);
-      const deploymentResult = await multisigContract?.deploy(publicKey, sortedMembers, thresholdNumber);
+      console.log("sortedMembers", sortedMembers);
+      const response = await multisigContract?.deploy(publicKey, sortedMembers, thresholdNumber);
+      const transactionReceipt = response.wait(1);
+      console.log("deploymentResult", transactionReceipt);
       setTransactionStatus(false);
     } catch (e) {
       setTransactionStatus(false);
@@ -308,7 +322,7 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
   return (
     <div className={"flex flex-col gap-[20px]"}>
       {/*one more step to deploy*/}
-      {isIsWaitingToDeploy && (
+      {isWaitingToDeploy && (
         <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
           <div>{t(localeKeys.oneMoreStep)}</div>
           <div className={"px-[5px]"}>
@@ -354,7 +368,7 @@ const MultisigAccountInfo = ({ isIsWaitingToDeploy, isSuccessfullyMigrated }: Pr
                 <img onClick={generateShareLink} className={"clickable shrink-0"} src={copyIcon} alt="image" />
               </div>
             </div>
-            {!multisigMigrationStatus && <Button onClick={onShowMigrateModal}>{t(localeKeys.migrate)}</Button>}
+            {canMigrate && <Button onClick={onShowMigrateModal}>{t(localeKeys.migrate)}</Button>}
           </div>
           <div onClick={toggleMemberSections} className={"flex gap-[20px] items-center mt-[20px]"}>
             <div className={"flex gap-[10px]"}>

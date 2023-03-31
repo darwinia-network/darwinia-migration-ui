@@ -17,8 +17,8 @@ import {
   Deposit,
   DarwiniaStakingLedger,
   AssetDistribution,
-  DarwiniaAccountMigrationMultisig,
-  MultisigParams,
+  DarwiniaSourceAccountMigrationMultisig,
+  MultisigDestinationParams,
 } from "@darwinia/app-types";
 import { ApiPromise, WsProvider, SubmittableResult } from "@polkadot/api";
 import { web3Accounts, web3Enable } from "@polkadot/extension-dapp";
@@ -63,6 +63,7 @@ const initialState: WalletCtx = {
   isCorrectEthereumChain: undefined,
   multisigMigrationStatus: undefined,
   isMultisigAccountMigratedJustNow: undefined,
+  isCheckingMultisigCompleted: undefined,
   setLoadingMultisigBalance: (isLoading: boolean) => {
     //ignore
   },
@@ -109,7 +110,7 @@ const initialState: WalletCtx = {
     initializer: string,
     otherAccounts: string[],
     threshold: string,
-    multisigParams: MultisigParams,
+    multisigDestinationParams: MultisigDestinationParams | null,
     callback: (isSuccessful: boolean) => void
   ) => {
     //ignore
@@ -124,6 +125,9 @@ const initialState: WalletCtx = {
   },
   isMultisigAccountDeployed: (accountAddress: string) => {
     return Promise.resolve(false);
+  },
+  setIsCheckingMultisigCompleted: (isLoading: boolean) => {
+    //ignore
   },
 };
 
@@ -160,7 +164,8 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [multisigContract, setMultisigContract] = useState<Contract>();
   const [provider, setProvider] = useState<Web3Provider>();
   const [isCorrectEthereumChain, setCorrectEthereumChain] = useState<boolean>(false);
-  const [multisigMigrationStatus, setMultisigMigrationStatus] = useState<DarwiniaAccountMigrationMultisig>();
+  const [multisigMigrationStatus, setMultisigMigrationStatus] = useState<DarwiniaSourceAccountMigrationMultisig>();
+  const [isCheckingMultisigCompleted, setIsCheckingMultisigCompleted] = useState<boolean>(false);
 
   const { currentBlock } = useBlock(apiPromise);
   const { getAccountAsset, isLoadingWalletLedger } = useLedger({
@@ -656,7 +661,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       initializer: string,
       otherAccounts: string[],
       threshold: string,
-      multisigParams: MultisigParams,
+      multisigDestinationParams: MultisigDestinationParams | null,
       callback: (isSuccessful: boolean) => void
     ) => {
       let unSubscription: UnSubscription;
@@ -682,7 +687,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
           threshold,
           to,
           signature,
-          multisigParams
+          multisigDestinationParams
         );
 
         unSubscription = (await extrinsic.send((result: SubmittableResult) => {
@@ -757,7 +762,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   );
 
   const checkMultisigAccountMigrationStatus = useCallback(
-    async (accountAddress: string): Promise<undefined | DarwiniaAccountMigrationMultisig> => {
+    async (accountAddress: string): Promise<undefined | DarwiniaSourceAccountMigrationMultisig> => {
       if (!apiPromise) {
         setMultisigMigrationStatus(undefined);
         return Promise.resolve(undefined);
@@ -769,7 +774,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         return Promise.resolve(undefined);
       }
       const resultString = result.unwrap().toHuman();
-      const resultObj = resultString as unknown as DarwiniaAccountMigrationMultisig;
+      const resultObj = resultString as unknown as DarwiniaSourceAccountMigrationMultisig;
       resultObj.threshold = Number(resultObj.threshold);
       setMultisigMigrationStatus(resultObj);
       return Promise.resolve(resultObj);
@@ -831,7 +836,6 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const isMultisigAccountDeployed = useCallback(
     async (accountAddress: string): Promise<boolean> => {
       const result = await provider?.getCode(accountAddress);
-      console.log("result====", result);
       return result !== "0x";
     },
     [provider]
@@ -877,6 +881,8 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         getAccountPrettyName,
         isMultisigAccountMigratedJustNow,
         isMultisigAccountDeployed,
+        isCheckingMultisigCompleted,
+        setIsCheckingMultisigCompleted,
       }}
     >
       {children}
