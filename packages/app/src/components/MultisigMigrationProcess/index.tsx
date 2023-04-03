@@ -176,7 +176,7 @@ const MultisigMigrationProcess = () => {
       const formattedAddress = convertToSS58(accountItem.address, selectedNetwork?.prefix ?? 18);
       const asset = await getAccountBalance(formattedAddress);
       const item: MultisigAccountData = {
-        id: accountItem.address,
+        id: `${accountItem.address}-${i}`,
         address: accountItem.address,
         formattedAddress: formattedAddress,
         name: accountItem.meta.name,

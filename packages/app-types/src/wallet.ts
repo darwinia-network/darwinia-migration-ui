@@ -160,7 +160,7 @@ export interface CurrentBlock {
 
 export interface DarwiniaSourceAccountMigrationMultisig {
   threshold: number;
-  migrateTo: string;
+  to: string;
   members: [string, boolean][];
 }
 

@@ -10,17 +10,14 @@ import cktonIcon from "../../assets/images/ckton.svg";
 import ktonIcon from "../../assets/images/kton.svg";
 import helpIcon from "../../assets/images/help.svg";
 import infoIcon from "../../assets/images/info.svg";
+import warning from "../../assets/images/warning-yellow.svg";
 import { useWallet } from "@darwinia/app-providers";
 import { convertToSS58, getStore, prettifyNumber, prettifyTooltipNumber } from "@darwinia/app-utils";
-import {
-  DarwiniaSourceAccountMigrationMultisig,
-  Destination,
-  DestinationInfo,
-  DestinationType,
-} from "@darwinia/app-types";
+import { DarwiniaSourceAccountMigrationMultisig, MultisigDestinationParams } from "@darwinia/app-types";
 
 interface Props {
-  migrationStatus: DarwiniaSourceAccountMigrationMultisig | undefined;
+  sourceMultisigMigrationStatus: DarwiniaSourceAccountMigrationMultisig | undefined;
+  multisigDestinationParams: MultisigDestinationParams | undefined;
   isWaitingToDeploy: boolean;
   isSuccessfullyMigrated: boolean;
 }
@@ -31,9 +28,14 @@ interface MemberStatus {
   hasApproved: boolean;
 }
 
-const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy, isSuccessfullyMigrated }: Props) => {
+const MultisigMigrationProgressTabs = ({
+  sourceMultisigMigrationStatus,
+  isWaitingToDeploy,
+  isSuccessfullyMigrated,
+  multisigDestinationParams,
+}: Props) => {
   const { t } = useAppTranslation();
-  const [memberAccounts, setMemberAccounts] = useState<MemberStatus[]>([]);
+  const [sourceMemberAccounts, setSourceMemberAccounts] = useState<MemberStatus[]>([]);
   const location = useLocation();
   const {
     selectedNetwork,
@@ -48,26 +50,23 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy, isS
   const members = (params.get("who") ?? "")
     .split(",")
     .map((address) => convertToSS58(address, selectedNetwork?.prefix ?? 18));
-  const threshold = params.get("threshold");
-  const destinationAddress = params.get("destination");
-  const destinationMembers = (params.get("destinationMembers") ?? "").split(",").filter((item) => item.trim() !== "");
-  const destinationType: DestinationType = destinationMembers.length > 0 ? "Multisig Account" : "General Account";
-  const destinationThreshold = Number(params.get("destinationThreshold") ?? 0);
-  const [destination, setDestination] = useState<Destination>();
   const [recentlyApprovedAddresses, setRecentlyApprovedAddresses] = useState<string[]>([]);
-  const showWaitingDeploy = !isWaitingToDeploy && !isSuccessfullyMigrated;
+  const [isThresholdReached, setIsThresholdReached] = useState(false);
+  const showWaitingDeploy =
+    !isWaitingToDeploy && !isSuccessfullyMigrated && (multisigDestinationParams?.members ?? []).length > 0;
 
   useEffect(() => {
-    if (!apiPromise || !migrationStatus || !location) {
+    if (!apiPromise || !sourceMultisigMigrationStatus || !location) {
       return;
     }
 
     const prepareMembers = async () => {
-      setMemberAccounts([]);
+      setSourceMemberAccounts([]);
+      let thresholdCounter = 0;
       const tempMembers: MemberStatus[] = [];
       for (let i = 0; i < members.length; i++) {
         const address = members[i];
-        const account = migrationStatus.members.find((member) => member[0] === address);
+        const account = sourceMultisigMigrationStatus.members.find((member) => member[0] === address);
         if (account) {
           const hasApproved = account[1] || recentlyApprovedAddresses.includes(account[0]);
           const name = (await getAccountPrettyName(address)) ?? "";
@@ -76,48 +75,20 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy, isS
             hasApproved,
             name,
           };
+          if (hasApproved) {
+            thresholdCounter = thresholdCounter + 1;
+          }
           tempMembers.push(status);
         }
       }
-      setMemberAccounts([...tempMembers]);
+      setIsThresholdReached(thresholdCounter >= sourceMultisigMigrationStatus.threshold);
+      setSourceMemberAccounts([...tempMembers]);
     };
 
     prepareMembers().catch((e) => {
       console.log(e);
     });
-  }, [location, apiPromise, migrationStatus, recentlyApprovedAddresses]);
-
-  useEffect(() => {
-    if (migrationStatus && location) {
-      const destinationInfo = getStore<DestinationInfo>("destinationInfo");
-
-      if (destinationMembers.length > 0) {
-        // this is a shared link
-        setDestination({
-          type: destinationType,
-          threshold: destinationThreshold,
-          address: destinationAddress ?? "",
-          members: destinationMembers,
-        });
-      } else if (destinationInfo && destinationInfo[address]) {
-        const value = destinationInfo[address];
-        const urlParams = new URLSearchParams(location.search);
-
-        //set the URL params accordingly for later use
-        urlParams.set("destination", value.address);
-        if (value.type === "Multisig Account") {
-          urlParams.set("destinationThreshold", `${value.threshold}`);
-          urlParams.set("destinationMembers", value.members.join(","));
-        } else {
-          urlParams.delete("destinationThreshold");
-          urlParams.delete("destinationMembers");
-        }
-
-        window.history.pushState({}, "", `/#${location.pathname}?${urlParams.toString()}`);
-        setDestination(value);
-      }
-    }
-  }, [migrationStatus, location]);
+  }, [location, apiPromise, sourceMultisigMigrationStatus, recentlyApprovedAddresses]);
 
   const ringTokenIcon = selectedNetwork?.name === "Crab" ? crabIcon : ringIcon;
   const ktonTokenIcon = selectedNetwork?.name === "Crab" ? cktonIcon : ktonIcon;
@@ -131,12 +102,12 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy, isS
   };
 
   const approveMigration = (signerAddress: string) => {
-    if (!destination?.address || typeof threshold === "undefined" || threshold === null) {
+    if (!multisigDestinationParams?.address) {
       return;
     }
 
     setTransactionStatus(true);
-    onApproveMultisigMigration(address, destination.address, signerAddress, (isSuccessful) => {
+    onApproveMultisigMigration(address, multisigDestinationParams.address, signerAddress, (isSuccessful) => {
       if (isSuccessful) {
         setRecentlyApprovedAddresses((old) => {
           return [...old, signerAddress];
@@ -163,14 +134,15 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy, isS
                     <div>
                       <div className={"pb-[10px]"}>{t(localeKeys.progress)}</div>
                       <div className={"bg-black"}>
-                        {memberAccounts?.map((item, index) => {
+                        {sourceMemberAccounts?.map((item, index) => {
                           let tag: JSX.Element | string = "";
                           const isMyAccount = !!injectedAccounts?.find(
                             (account) => account.formattedAddress.toLowerCase() === item.address.toLowerCase()
                           );
+
                           if (item.hasApproved) {
                             tag = t(localeKeys.approved);
-                          } else if (isMyAccount) {
+                          } else if (isMyAccount && !isThresholdReached) {
                             tag = (
                               <Button onClick={() => approveMigration(item.address)} className={"!h-[30px]"}>
                                 {t(localeKeys.approve)}
@@ -210,7 +182,18 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy, isS
                         <div className={`flex py-[12px] border-b divider`}>
                           <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.destination)}</div>
                           <div className={"flex-1 flex gap-[10px] items-center"}>
-                            <div>{destination?.address}</div>
+                            <div className={"flex flex-col gap-[5px]"}>
+                              <div>{multisigDestinationParams?.address}</div>
+                              {!isSuccessfullyMigrated && (
+                                <div className={"flex bg-blackSecondary gap-[5px] items-center p-[5px]"}>
+                                  <img src={warning} alt="address" />
+                                  <div className={"text-10"}>
+                                    Please do not transfer any funds to this account until all migration operations and
+                                    deployments have been completed.
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                             {showWaitingDeploy && (
                               <div className={"text-12 bg-primary px-[5px] py-[4px] flex gap-[4px]"}>
                                 <Tooltip message={t(localeKeys.waitingDeployMessage)}>
@@ -223,19 +206,23 @@ const MultisigMigrationProgressTabs = ({ migrationStatus, isWaitingToDeploy, isS
                         </div>
                         <div className={`flex py-[12px] border-b divider`}>
                           <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.type)}</div>
-                          <div className={"flex-1"}>{destination?.type}</div>
+                          <div className={"flex-1"}>
+                            {(multisigDestinationParams?.members ?? []).length > 0
+                              ? "Multisig Account"
+                              : "General Account"}
+                          </div>
                         </div>
-                        {destination?.type === "Multisig Account" && (
+                        {(multisigDestinationParams?.members ?? []).length > 0 && (
                           <div className={`flex py-[12px] border-b divider`}>
                             <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.threshold)}</div>
-                            <div className={"flex-1"}>{destination?.threshold}</div>
+                            <div className={"flex-1"}>{multisigDestinationParams?.threshold}</div>
                           </div>
                         )}
-                        {destination?.type === "Multisig Account" && (
+                        {(multisigDestinationParams?.members ?? []).length > 0 && (
                           <div className={`flex py-[12px] border-b divider`}>
                             <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.members)}</div>
                             <div className={"flex-1 flex flex-col"}>
-                              {destination?.members.map((item, index) => {
+                              {multisigDestinationParams?.members.map((item, index) => {
                                 return <div key={`${item}-${index}`}>{item}</div>;
                               })}
                             </div>
