@@ -300,8 +300,16 @@ const MultisigAccountInfo = ({
     });
   };
 
-  const generateShareLink = () => {
-    console.log("generate share link");
+  const generateShareLink = async () => {
+    try {
+      const link = location.href;
+      await navigator.clipboard.writeText(link);
+      notification.success({
+        message: <div>Link copied</div>,
+      });
+    } catch (e) {
+      //ignore
+    }
   };
 
   const initEthereumWalletConnection = () => {
