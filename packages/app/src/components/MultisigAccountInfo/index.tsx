@@ -102,7 +102,8 @@ const MultisigAccountInfo = ({
   const generateMultisigAccount = async (
     members: MultisigMemberAddress[],
     selectedEthereumAccount: string,
-    multisigSubstrateAddress: string
+    multisigSubstrateAddress: string,
+    destinationThreshold: string
   ) => {
     try {
       setIsGeneratingMultisigAccount(true);
@@ -111,7 +112,7 @@ const MultisigAccountInfo = ({
 
       memberAddresses.unshift(selectedEthereumAccount);
       const sortedMembers = memberAddresses.sort();
-      const thresholdNumber = EthersBigNumber.from(newAccountThreshold);
+      const thresholdNumber = EthersBigNumber.from(destinationThreshold);
       const multisigAddress = await multisigContract?.computeAddress(publicKey, sortedMembers, thresholdNumber);
       if (!multisigAddress) {
         console.log("multisig account not generated");
@@ -121,6 +122,7 @@ const MultisigAccountInfo = ({
       setNewMultisigAccountAddress(multisigAddress);
       setIsGeneratingMultisigAccount(false);
     } catch (e) {
+      setNewMultisigAccountAddress("");
       allMembersRef.current = [];
       setIsGeneratingMultisigAccount(false);
       console.log(e);
@@ -237,6 +239,21 @@ const MultisigAccountInfo = ({
     const addresses = [...memberAddresses];
     addresses.splice(index, 1);
     setMemberAddresses(addresses);
+
+    const members = [...addresses];
+    /* Member addresses will ways be one item less since the first address will always be chosen
+     * automatically on MetaMask */
+    if (
+      newAccountThreshold.trim() !== "" &&
+      selectedEthereumAccount &&
+      isCorrectEthereumChain &&
+      accountBasicInfo?.address &&
+      members.length >= Number(newAccountThreshold ?? 1) - 1
+    ) {
+      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address, newAccountThreshold.trim());
+    } else {
+      setNewMultisigAccountAddress("");
+    }
   };
 
   /*If the account is migrated to a general account, it won't need to be deployed*/
@@ -279,12 +296,15 @@ const MultisigAccountInfo = ({
     /* Member addresses will ways be one item less since the first address will always be chosen
      * automatically on MetaMask */
     if (
+      newAccountThreshold.trim() !== "" &&
       selectedEthereumAccount &&
       isCorrectEthereumChain &&
       accountBasicInfo?.address &&
       members.length >= Number(newAccountThreshold ?? 1) - 1
     ) {
-      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address);
+      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address, newAccountThreshold.trim());
+    } else {
+      setNewMultisigAccountAddress("");
     }
   };
 
@@ -314,6 +334,24 @@ const MultisigAccountInfo = ({
 
   const initEthereumWalletConnection = () => {
     connectEthereumWallet();
+  };
+
+  const onDestinationThresholdChanged = (value: string) => {
+    setNewAccountThreshold(value);
+    const members = [...memberAddresses];
+    /* Member addresses will ways be one item less since the first address will always be chosen
+     * automatically on MetaMask */
+    if (
+      value.trim() !== "" &&
+      selectedEthereumAccount &&
+      isCorrectEthereumChain &&
+      accountBasicInfo?.address &&
+      members.length >= Number(value ?? 1) - 1
+    ) {
+      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address, value.trim());
+    } else {
+      setNewMultisigAccountAddress("");
+    }
   };
 
   return (
@@ -490,7 +528,7 @@ const MultisigAccountInfo = ({
                       value={newAccountThreshold}
                       placeholder={""}
                       onChange={(e) => {
-                        setNewAccountThreshold(e.target.value);
+                        onDestinationThresholdChanged(e.target.value);
                       }}
                       leftIcon={null}
                     />

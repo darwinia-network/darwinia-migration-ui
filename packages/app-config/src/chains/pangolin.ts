@@ -10,11 +10,13 @@ export const pangolin: ChainConfig = {
     address: "0x0000000000000000000000000000000000000402",
     symbol: "PKTON",
     decimals: 9,
+    ethereumDecimals: 18,
   },
   ring: {
     name: "PRING",
     symbol: "PRING",
     decimals: 9,
+    ethereumDecimals: 18,
   },
   contractAddresses: {
     multisig: "0x227c3e01071C2429766dDec2267A613e32DD463e",

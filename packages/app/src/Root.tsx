@@ -21,6 +21,7 @@ const Root = () => {
     isLoadingMultisigBalance,
     isMultisig,
     isCheckingMultisigCompleted,
+    ethereumError,
   } = useWallet();
   const { isLoadingLedger, isLoadingMigratedLedger } = useStorage();
   const [loading, setLoading] = useState<boolean | undefined>(false);
@@ -136,6 +137,50 @@ const Root = () => {
       }
     }
   }, [error, walletConfig]);
+
+  useEffect(() => {
+    if (ethereumError) {
+      switch (ethereumError.code) {
+        case 0: {
+          /*The user has not installed the wallet*/
+          notification.error({
+            message: (
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: t(localeKeys.installWalletReminder, {
+                    walletName: "MetaMask",
+                    downloadURL: "https://metamask.io/",
+                  }),
+                }}
+              />
+            ),
+            duration: 10000,
+          });
+          break;
+        }
+        case 1: {
+          /*The user rejected adding the network configurations*/
+          notification.error({
+            message: <div>{t(localeKeys.chainAdditionRejected)}</div>,
+            duration: 10000,
+          });
+          break;
+        }
+        case 4: {
+          /*Configurations were added but the user rejected the account access permission*/
+          notification.error({
+            message: <div>{t(localeKeys.accountPermissionRejected)}</div>,
+          });
+          break;
+        }
+        default: {
+          notification.error({
+            message: <div>{ethereumError.message}</div>,
+          });
+        }
+      }
+    }
+  }, [ethereumError]);
 
   //check if it should auto connect to wallet or wait for the user to click the connect wallet button
   // no need to auto connect so as to allow

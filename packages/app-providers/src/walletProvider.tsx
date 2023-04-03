@@ -546,6 +546,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
                 chainName: selectedNetwork.name,
                 nativeCurrency: {
                   ...selectedNetwork.ring,
+                  decimals: selectedNetwork.ring.ethereumDecimals,
                 },
                 rpcUrls: [...selectedNetwork.httpsURLs],
                 blockExplorerUrls: [...selectedNetwork.explorerURLs],

@@ -109,4 +109,7 @@ export const localeKeys = {
   approved: "approved",
   migrationFailed: "migrationFailed",
   approve: "approve",
+  installEthereumWalletReminder: "installEthereumWalletReminder",
+  chainAdditionRejected: "chainAdditionRejected",
+  accountPermissionRejected: "accountPermissionRejected",
 };

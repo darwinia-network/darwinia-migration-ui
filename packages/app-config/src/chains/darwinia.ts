@@ -9,12 +9,14 @@ export const darwinia: ChainConfig = {
   kton: {
     address: "0x0000000000000000000000000000000000000402",
     symbol: "KTON",
-    decimals: 18,
+    decimals: 9,
+    ethereumDecimals: 18,
   },
   ring: {
     name: "RING",
     symbol: "RING",
-    decimals: 18,
+    decimals: 9,
+    ethereumDecimals: 18,
   },
   contractAddresses: {
     multisig: "0x227c3e01071C2429766dDec2267A613e32DD463e", //TODO  update this accordingly

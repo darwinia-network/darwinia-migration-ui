@@ -11,11 +11,13 @@ export const pangoro: ChainConfig = {
     symbol: "OKTON",
     name: "OKTON",
     decimals: 9,
+    ethereumDecimals: 18,
   },
   ring: {
     name: "ORING",
     symbol: "ORING",
     decimals: 9,
+    ethereumDecimals: 18,
   },
   contractAddresses: {
     multisig: "0x6c25E0c1f57d7E78d7eB8D350f11204137EF71bE",

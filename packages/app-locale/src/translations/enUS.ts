@@ -111,6 +111,9 @@ const enUs = {
   [localeKeys.approved]: "Approved",
   [localeKeys.migrationFailed]: "Migration failed",
   [localeKeys.approve]: "Approve",
+  [localeKeys.installEthereumWalletReminder]: `Connection failed. Please download {{walletName}} Extension <a target="_blank" class="link link-primary" href={{downloadURL}}>here</a>.`,
+  [localeKeys.chainAdditionRejected]: `Network mismatch, you can switch network manually in MetaMask.`,
+  [localeKeys.accountPermissionRejected]: `Account access permission rejected`,
 };
 
 export default enUs;
