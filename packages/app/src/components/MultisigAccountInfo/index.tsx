@@ -1,6 +1,6 @@
 import { localeKeys, useAppTranslation } from "@darwinia/app-locale";
 import { useWallet } from "@darwinia/app-providers";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Identicon from "@polkadot/react-identicon";
 import copyIcon from "../../assets/images/copy.svg";
 import { Button, CheckboxGroup, Input, ModalEnhanced, notification, SlideDownUp, Tooltip } from "@darwinia/ui";
@@ -64,6 +64,8 @@ const MultisigAccountInfo = ({
   );
   const [newMultisigAccountAddress, setNewMultisigAccountAddress] = useState<string>("");
   const [isIsGeneratingMultisigAccount, setIsGeneratingMultisigAccount] = useState<boolean>(false);
+  const deployButtonRef = useRef<HTMLButtonElement>(null);
+  const shouldAutoClickDeployButton = useRef<boolean>(false);
 
   const destinationTabs = [
     {
@@ -240,25 +242,38 @@ const MultisigAccountInfo = ({
     addresses.splice(index, 1);
     setMemberAddresses(addresses);
 
-    const members = [...addresses];
+    const members = [...addresses].filter((item) => item.address !== "");
     /* Member addresses will ways be one item less since the first address will always be chosen
      * automatically on MetaMask */
+    const newThreshold = newAccountThreshold.trim() === "" ? 1 : Number(newAccountThreshold.trim());
     if (
-      newAccountThreshold.trim() !== "" &&
+      newThreshold >= 2 &&
       selectedEthereumAccount &&
       isCorrectEthereumChain &&
       accountBasicInfo?.address &&
-      members.length >= Number(newAccountThreshold ?? 1) - 1
+      members.length >= newThreshold - 1
     ) {
-      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address, newAccountThreshold.trim());
+      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address, `${newThreshold}`);
     } else {
       setNewMultisigAccountAddress("");
     }
   };
 
+  useEffect(() => {
+    if (isCorrectEthereumChain && shouldAutoClickDeployButton.current) {
+      deployButtonRef.current?.click();
+    }
+  }, [isCorrectEthereumChain, shouldAutoClickDeployButton.current]);
+
   /*If the account is migrated to a general account, it won't need to be deployed*/
   const onDeploy = async () => {
     try {
+      if (!isCorrectEthereumChain) {
+        shouldAutoClickDeployButton.current = true;
+        connectEthereumWallet();
+        return;
+      }
+      shouldAutoClickDeployButton.current = false;
       setTransactionStatus(true);
       const publicKey = getPublicKey(accountBasicInfo?.address ?? "");
       const destinationMembersProps = accountBasicInfo?.destinationMembers ?? [];
@@ -293,16 +308,18 @@ const MultisigAccountInfo = ({
     const members = [...memberAddresses];
     members[index].address = value;
     setMemberAddresses(() => members);
+    const exactMembers = [...members].filter((item) => item.address !== "");
     /* Member addresses will ways be one item less since the first address will always be chosen
      * automatically on MetaMask */
+    const newThreshold = newAccountThreshold.trim() === "" ? 1 : Number(newAccountThreshold.trim());
     if (
-      newAccountThreshold.trim() !== "" &&
+      newThreshold >= 2 &&
       selectedEthereumAccount &&
       isCorrectEthereumChain &&
       accountBasicInfo?.address &&
-      members.length >= Number(newAccountThreshold ?? 1) - 1
+      exactMembers.length >= newThreshold - 1
     ) {
-      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address, newAccountThreshold.trim());
+      generateMultisigAccount(exactMembers, selectedEthereumAccount, accountBasicInfo?.address, `${newThreshold}`);
     } else {
       setNewMultisigAccountAddress("");
     }
@@ -338,17 +355,18 @@ const MultisigAccountInfo = ({
 
   const onDestinationThresholdChanged = (value: string) => {
     setNewAccountThreshold(value);
-    const members = [...memberAddresses];
+    const members = [...memberAddresses].filter((item) => item.address !== "");
     /* Member addresses will ways be one item less since the first address will always be chosen
      * automatically on MetaMask */
+    const thresholdValue = value.trim() === "" ? 1 : Number(value.trim());
     if (
-      value.trim() !== "" &&
+      thresholdValue >= 2 &&
       selectedEthereumAccount &&
       isCorrectEthereumChain &&
       accountBasicInfo?.address &&
-      members.length >= Number(value ?? 1) - 1
+      members.length >= thresholdValue - 1
     ) {
-      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address, value.trim());
+      generateMultisigAccount(members, selectedEthereumAccount, accountBasicInfo?.address, `${thresholdValue}`);
     } else {
       setNewMultisigAccountAddress("");
     }
@@ -362,6 +380,7 @@ const MultisigAccountInfo = ({
           <div>{t(localeKeys.oneMoreStep)}</div>
           <div className={"px-[5px]"}>
             <Button
+              ref={deployButtonRef}
               onClick={() => {
                 onDeploy();
               }}
