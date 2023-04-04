@@ -289,7 +289,9 @@ const MultisigAccountInfo = ({
       }
       const sortedMembers = [...ethereumMemberAddresses].sort();
       const destinationThreshold =
-        typeof accountBasicInfo?.threshold !== "undefined" ? accountBasicInfo?.threshold : newAccountThreshold;
+        typeof accountBasicInfo?.destinationThreshold !== "undefined"
+          ? accountBasicInfo?.destinationThreshold
+          : newAccountThreshold;
       console.log("sortedMembers", sortedMembers);
       console.log("destinationThreshold", destinationThreshold);
       console.log("publicKey", publicKey);

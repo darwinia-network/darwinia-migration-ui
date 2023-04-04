@@ -15,7 +15,10 @@ const MultisigHome = () => {
       <div className={"flex flex-col gap-[20px]"}>
         <div className={"flex gap-[20px] items-center"}>
           <img className={"w-[40px]"} src={migrationIcon} alt="migration" />
-          <div className={"text-24-bold"} dangerouslySetInnerHTML={{ __html: t(localeKeys.accountMigrationTitle) }} />
+          <div
+            className={"text-24-bold"}
+            dangerouslySetInnerHTML={{ __html: t(localeKeys.multisigAccountMigrationTitle) }}
+          />
         </div>
       </div>
       <div className={"flex flex-1 bg-blackSecondary items-center justify-center gap-5"}>
