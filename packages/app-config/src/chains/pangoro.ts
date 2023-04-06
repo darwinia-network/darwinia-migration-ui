@@ -28,7 +28,7 @@ export const pangoro: ChainConfig = {
   chainId: 45,
   prefix: 18,
   substrate: {
-    graphQlURL: "https://api.subquery.network/sq/isunaslabs/pangoro",
+    graphQlURL: "https://subql.darwinia.network/subql-apps-pangoro",
     wssURL: "wss://pangoro-rpc.darwinia.network",
   },
 };
