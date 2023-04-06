@@ -1,5 +1,5 @@
 import { localeKeys, useAppTranslation } from "@darwinia/app-locale";
-import { useWallet } from "@darwinia/app-providers";
+import { useStorage, useWallet } from "@darwinia/app-providers";
 import { useEffect, useRef, useState } from "react";
 import Identicon from "@polkadot/react-identicon";
 import copyIcon from "../../assets/images/copy.svg";
@@ -43,6 +43,7 @@ const MultisigAccountInfo = ({
     isCorrectEthereumChain,
     setTransactionStatus,
   } = useWallet();
+  const { checkEVMAccountStatus, isAccountFree } = useStorage();
 
   const [isMemberSectionVisible, setMemberSectionVisible] = useState<boolean>(true);
   const [isMigrateModalVisible, setMigrationModalVisible] = useState<boolean>(false);
@@ -66,6 +67,12 @@ const MultisigAccountInfo = ({
   const [isIsGeneratingMultisigAccount, setIsGeneratingMultisigAccount] = useState<boolean>(false);
   const deployButtonRef = useRef<HTMLButtonElement>(null);
   const shouldAutoClickDeployButton = useRef<boolean>(false);
+  const [isJustDeployed, setIsJustDeployed] = useState<boolean>(false);
+  const [isCheckingAccountStatus, setCheckingAccountStatus] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsJustDeployed(isSuccessfullyMigrated);
+  }, [isSuccessfullyMigrated]);
 
   const destinationTabs = [
     {
@@ -174,11 +181,19 @@ const MultisigAccountInfo = ({
 
   const isContinueButtonDisabled = () => {
     if (activeDestinationTab === 1) {
-      return destinationAddress.length === 0 || isIsGeneratingMultisigAccount;
+      return destinationAddress.trim().length === 0 || isCheckingAccountStatus || !isAccountFree;
     } else {
       const isValidThreshold = isValidNumber(newAccountThreshold);
       const isValidMultisigAddress = isEthereumAddress(newMultisigAccountAddress);
       return !isValidThreshold || !isValidMultisigAddress || isIsGeneratingMultisigAccount || !isCorrectEthereumChain;
+    }
+  };
+
+  const isContinueButtonLoading = () => {
+    if (activeDestinationTab === 1) {
+      return isCheckingAccountStatus;
+    } else {
+      return isIsGeneratingMultisigAccount;
     }
   };
 
@@ -273,6 +288,7 @@ const MultisigAccountInfo = ({
         connectEthereumWallet();
         return;
       }
+      setIsJustDeployed(false);
       shouldAutoClickDeployButton.current = false;
       setTransactionStatus(true);
       const publicKey = getPublicKey(accountBasicInfo?.address ?? "");
@@ -299,8 +315,10 @@ const MultisigAccountInfo = ({
       const response = await multisigContract?.deploy(publicKey, sortedMembers, thresholdNumber);
       const transactionReceipt = await response.wait(1);
       console.log("deploymentResult", transactionReceipt);
+      setIsJustDeployed(true);
       setTransactionStatus(false);
     } catch (e) {
+      setIsJustDeployed(false);
       setTransactionStatus(false);
       console.log(e);
     }
@@ -374,10 +392,21 @@ const MultisigAccountInfo = ({
     }
   };
 
+  const onDestinationAddressChanged = async (address: string) => {
+    try {
+      setDestinationAddress(address);
+      setCheckingAccountStatus(true);
+      await checkEVMAccountStatus(address);
+      setCheckingAccountStatus(false);
+    } catch (e) {
+      //ignore
+    }
+  };
+
   return (
     <div className={"flex flex-col gap-[20px]"}>
       {/*one more step to deploy*/}
-      {isWaitingToDeploy && (
+      {isWaitingToDeploy && !isJustDeployed && (
         <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
           <div>{t(localeKeys.oneMoreStep)}</div>
           <div className={"px-[5px]"}>
@@ -394,7 +423,7 @@ const MultisigAccountInfo = ({
         </div>
       )}
       {/*account migrated successfully*/}
-      {isSuccessfullyMigrated && (
+      {(isSuccessfullyMigrated || isJustDeployed) && (
         <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
           <div
             dangerouslySetInnerHTML={{
@@ -477,6 +506,7 @@ const MultisigAccountInfo = ({
         isVisible={isMigrateModalVisible}
         onClose={onCloseMigrationModal}
         modalTitle={t(localeKeys.migration)}
+        confirmLoading={isContinueButtonLoading()}
       >
         <div className={"flex flex-col gap-[20px] dw-custom-scrollbar max-h-[500px]"}>
           <div className={"flex flex-col gap-[10px] border-b divider pb-[20px]"}>
@@ -525,12 +555,15 @@ const MultisigAccountInfo = ({
                   <input
                     value={destinationAddress}
                     onChange={(e) => {
-                      setDestinationAddress(e.target.value);
+                      onDestinationAddressChanged(e.target.value);
                     }}
                     placeholder={t(localeKeys.evmAccountFormat)}
                     className={"custom-input h-[40px]"}
                   />
                 </div>
+                {!isAccountFree && destinationAddress.trim().length > 0 && (
+                  <div className={"text-primary text-10"}>{t(localeKeys.evmAccountNotFree)}</div>
+                )}
                 <div>{t(localeKeys.migrationNotice)}</div>
               </div>
               {/*Multisig tab*/}

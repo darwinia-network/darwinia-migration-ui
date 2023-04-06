@@ -183,7 +183,17 @@ const MultisigMigrationProgressTabs = ({
                           <div className={"px-[10px] min-w-[160px] shrink-0"}>{t(localeKeys.destination)}</div>
                           <div className={"flex-1 flex gap-[10px] items-center"}>
                             <div className={"flex flex-col gap-[5px]"}>
-                              <div>{multisigDestinationParams?.address}</div>
+                              <div className={"flex gap-[5px]"}>
+                                <div>{multisigDestinationParams?.address}</div>{" "}
+                                {showWaitingDeploy && (
+                                  <div className={"text-12 bg-primary px-[5px] py-[4px] flex gap-[4px]"}>
+                                    <Tooltip message={t(localeKeys.waitingDeployMessage)}>
+                                      <img className={"w-[16px] h-[16px]"} src={infoIcon} alt="icon" />
+                                    </Tooltip>
+                                    <div>{t(localeKeys.waitingDeploy)}</div>
+                                  </div>
+                                )}
+                              </div>
                               {!isSuccessfullyMigrated && (
                                 <div className={"flex bg-blackSecondary gap-[5px] items-center p-[5px]"}>
                                   <img src={warning} alt="address" />
@@ -194,14 +204,6 @@ const MultisigMigrationProgressTabs = ({
                                 </div>
                               )}
                             </div>
-                            {showWaitingDeploy && (
-                              <div className={"text-12 bg-primary px-[5px] py-[4px] flex gap-[4px]"}>
-                                <Tooltip message={t(localeKeys.waitingDeployMessage)}>
-                                  <img className={"w-[16px] h-[16px]"} src={infoIcon} alt="icon" />
-                                </Tooltip>
-                                <div>{t(localeKeys.waitingDeploy)}</div>
-                              </div>
-                            )}
                           </div>
                         </div>
                         <div className={`flex py-[12px] border-b divider`}>
