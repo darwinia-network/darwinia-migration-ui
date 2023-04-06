@@ -54,6 +54,7 @@ const MultisigMigrationProgressTabs = ({
   const [isThresholdReached, setIsThresholdReached] = useState(false);
   const showWaitingDeploy =
     !isWaitingToDeploy && !isSuccessfullyMigrated && (multisigDestinationParams?.members ?? []).length > 0;
+  const showMigrationAccountWarning = !isSuccessfullyMigrated && (multisigDestinationParams?.members ?? []).length > 0;
 
   useEffect(() => {
     if (!apiPromise || !sourceMultisigMigrationStatus || !location) {
@@ -194,7 +195,7 @@ const MultisigMigrationProgressTabs = ({
                                   </div>
                                 )}
                               </div>
-                              {!isSuccessfullyMigrated && (
+                              {showMigrationAccountWarning && (
                                 <div className={"flex bg-blackSecondary gap-[5px] items-center p-[5px]"}>
                                   <img src={warning} alt="address" />
                                   <div className={"text-10"}>

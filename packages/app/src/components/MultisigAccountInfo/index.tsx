@@ -24,6 +24,7 @@ interface Props {
   isSuccessfullyMigrated: boolean;
   isMigrationInitialized: boolean;
   accountBasicInfo?: AccountBasicInfo;
+  onDeploymentSuccessful: () => void;
 }
 
 const MultisigAccountInfo = ({
@@ -31,6 +32,7 @@ const MultisigAccountInfo = ({
   isSuccessfullyMigrated,
   isMigrationInitialized,
   accountBasicInfo,
+  onDeploymentSuccessful,
 }: Props) => {
   const { t } = useAppTranslation();
   const {
@@ -104,8 +106,13 @@ const MultisigAccountInfo = ({
   };
 
   const onContinueMigration = () => {
-    setMigrationModalVisible(false);
-    setAttentionModalVisibility(true);
+    if (activeDestinationTab === 1) {
+      setMigrationModalVisible(false);
+      setAttentionModalVisibility(true);
+    } else {
+      setMigrationModalVisible(false);
+      setConfirmationModalVisibility(true);
+    }
   };
 
   const generateMultisigAccount = async (
@@ -317,6 +324,7 @@ const MultisigAccountInfo = ({
       console.log("deploymentResult", transactionReceipt);
       setIsJustDeployed(true);
       setTransactionStatus(false);
+      onDeploymentSuccessful();
     } catch (e) {
       setIsJustDeployed(false);
       setTransactionStatus(false);
@@ -427,7 +435,9 @@ const MultisigAccountInfo = ({
         <div className={"flex py-[10px] border border-primary items-center gap-[10px] px-[15px]"}>
           <div
             dangerouslySetInnerHTML={{
-              __html: t(localeKeys.multisigMigrationSuccessful, { link: "https://www.test.com" }),
+              __html: t(localeKeys.multisigMigrationSuccessful, {
+                link: "https://ipfs.io/ipfs/QmfRD4GuqZobNi2NT2C77a3UTQ452ffwstr4fjEJixUgjf/#/wallets",
+              }),
             }}
           />
         </div>

@@ -277,6 +277,11 @@ const MultisigAccountMigrationSummary = () => {
     isCheckingSubqueryDestinationMigration,
   ]);
 
+  const onDeploymentSuccessful = () => {
+    setIsWaitingToDeploy(false);
+    setIsSuccessfullyMigrated(true);
+  };
+
   const footerLinks = [
     {
       title: t(localeKeys.howToMigrate),
@@ -295,6 +300,7 @@ const MultisigAccountMigrationSummary = () => {
   return (
     <div className={"flex flex-col gap-[20px]"}>
       <MultisigAccountInfo
+        onDeploymentSuccessful={onDeploymentSuccessful}
         isMigrationInitialized={isMigrationInitialized}
         accountBasicInfo={accountBasicInfo}
         isWaitingToDeploy={isWaitingToDeploy}
