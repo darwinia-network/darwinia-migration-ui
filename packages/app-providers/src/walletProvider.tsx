@@ -218,7 +218,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   /*This will be fired once the connection to the wallet is successful*/
   useEffect(() => {
-    if (!selectedNetwork || !isEthereumWalletConnected) {
+    if (!selectedNetwork) {
       return;
     }
     //refresh the page with the newly selected account
