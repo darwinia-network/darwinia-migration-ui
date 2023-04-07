@@ -8,7 +8,7 @@ import JazzIcon from "../JazzIcon";
 import { isEthereumAddress } from "@darwinia/app-utils";
 import { useQuery } from "@apollo/client";
 
-interface Tip {
+export interface Tip {
   id: number;
   title: string;
 }

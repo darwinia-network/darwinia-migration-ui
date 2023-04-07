@@ -153,3 +153,25 @@ a {
     align-items: flex-start !important;
   }
 }
+.custom-input {
+  align-self: stretch;
+  display: block;
+  width: 100%;
+  flex: 1;
+  border: none;
+  background-color: transparent;
+  outline: none;
+  appearance: none;
+
+  &.error {
+    color: var(--danger) !important;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &::placeholder {
+    color: var(--halfWhite);
+  }
+}

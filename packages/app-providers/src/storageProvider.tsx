@@ -6,6 +6,8 @@ import useLedger from "./hooks/useLedger";
 import { keyring } from "@polkadot/ui-keyring";
 import { StorageKey } from "@polkadot/types";
 import type { AnyTuple, Codec } from "@polkadot/types/types";
+import { Contract, ethers } from "ethers";
+import { createMultiSigAccount } from "@darwinia/app-utils";
 
 const initialState: StorageCtx = {
   migrationAssetDistribution: undefined,
@@ -19,6 +21,7 @@ const initialState: StorageCtx = {
   },
   isAccountFree: undefined,
   migratedAssetDistribution: undefined,
+  multisigContract: undefined,
 };
 
 export type UnSubscription = () => void;
@@ -26,9 +29,9 @@ export type UnSubscription = () => void;
 const StorageContext = createContext(initialState);
 
 export const StorageProvider = ({ children }: PropsWithChildren) => {
-  const { selectedNetwork, selectedAccount } = useWallet();
-  const [apiPromise, setApiPromise] = useState<ApiPromise>();
+  const { selectedNetwork, selectedAccount, apiPromise } = useWallet();
   const [isAccountFree, setAccountFree] = useState(false);
+  const [multisigContract, setMultisigContract] = useState<Contract>();
 
   const {
     isLoadingLedger,
@@ -87,34 +90,21 @@ export const StorageProvider = ({ children }: PropsWithChildren) => {
     [apiPromise]
   );
 
-  const initStorageNetwork = async (rpcURL: string) => {
-    try {
-      const provider = new WsProvider(rpcURL);
-      const api = new ApiPromise({
-        provider,
-      });
-
-      api.on("connected", async () => {
-        const readyAPI = await api.isReady;
-        setApiPromise(readyAPI);
-      });
-      api.on("disconnected", () => {
-        // console.log("disconnected");
-      });
-      api.on("error", () => {
-        // console.log("error");
-      });
-    } catch (e) {
-      //ignore
-    }
-  };
-
   useEffect(() => {
-    if (!selectedNetwork) {
+    if (!selectedAccount || !selectedNetwork) {
       return;
     }
-    initStorageNetwork(selectedNetwork.substrate.wssURL);
-  }, [selectedNetwork]);
+    //refresh the page with the newly selected account
+    const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+    const newSigner = newProvider.getSigner();
+    const newMultisigContract = new ethers.Contract(
+      selectedNetwork.contractAddresses.multisig,
+      selectedNetwork.contractInterface.multisig,
+      newSigner
+    );
+
+    setMultisigContract(newMultisigContract);
+  }, [selectedAccount, selectedNetwork]);
 
   return (
     <StorageContext.Provider
@@ -126,6 +116,7 @@ export const StorageProvider = ({ children }: PropsWithChildren) => {
         isLoadingMigratedLedger,
         retrieveMigratedAsset,
         migratedAssetDistribution,
+        multisigContract,
       }}
     >
       {children}

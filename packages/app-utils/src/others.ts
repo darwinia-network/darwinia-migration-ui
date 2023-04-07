@@ -1,9 +1,10 @@
 import { Storage } from "@darwinia/app-types";
 import { STORAGE as APP_STORAGE } from "@darwinia/app-config";
 import BigNumber from "bignumber.js";
-import { ethers } from "ethers";
-import { encodeAddress } from "@polkadot/util-crypto";
-export { isMobile } from 'is-mobile';
+import { ethers, utils } from "ethers";
+import { encodeAddress, createKeyMulti, sortAddresses, isAddress, decodeAddress } from "@polkadot/util-crypto";
+import { u8aToHex, numberToHex } from "@polkadot/util";
+export { isMobile } from "is-mobile";
 
 export const setStore = (key: keyof Storage, value: unknown) => {
   try {
@@ -100,6 +101,10 @@ export const formatToWei = (valueInEther: string) => {
   return ethers.utils.parseEther(valueInEther);
 };
 
+export const isEthereumAddress = (address: string): boolean => {
+  return utils.isAddress(address);
+};
+
 export function convertToSS58(text: string, prefix: number, isShort = false): string {
   if (!text) {
     return "";
@@ -117,3 +122,25 @@ export function convertToSS58(text: string, prefix: number, isShort = false): st
     return "";
   }
 }
+
+export const createMultiSigAccount = (addresses: string[], prefix: number, threshold = 1) => {
+  const multiAddress = createKeyMulti(addresses, threshold);
+
+  // Convert byte array to SS58 encoding. pangoro-18, crab-42
+  const ss58Address = encodeAddress(multiAddress, prefix);
+
+  return ss58Address;
+};
+
+export const isSubstrateAddress = (address: string) => {
+  return isAddress(address);
+};
+
+export const getPublicKey = (accountAddress: string) => {
+  const publicKeyArray = decodeAddress(accountAddress);
+  return u8aToHex(publicKeyArray);
+};
+
+export const convertNumberToHex = (number: number) => {
+  return numberToHex(number);
+};

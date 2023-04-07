@@ -1,4 +1,4 @@
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import logoIcon from "../../assets/images/logo.png";
 import caretIcon from "../../assets/images/caret-down.svg";
 import { useEffect, useRef, useState } from "react";
@@ -21,10 +21,13 @@ const Header = () => {
     connectWallet,
     forceSetAccountAddress,
     walletConfig,
+    isMultisig,
   } = useWallet();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const selectAccountModalRef = useRef<SelectAccountModalRef>(null);
+  const shouldRefreshPage = useRef<boolean>(false);
 
   /* set the wallet network accordingly */
   useEffect(() => {
@@ -37,7 +40,7 @@ const Header = () => {
         // the URL contains the network param
         const foundNetwork = supportedNetworks.find((item) => item.name.toLowerCase() === network.toLowerCase());
         if (foundNetwork) {
-          changeConnectedNetwork(foundNetwork);
+          changeSelectedNetwork(foundNetwork);
         }
       }
       if (account) {
@@ -46,7 +49,7 @@ const Header = () => {
     } else {
       /* use test network by default */
       const index = supportedNetworks.findIndex((network) => network.name === "Crab");
-      changeConnectedNetwork(supportedNetworks[index]);
+      changeSelectedNetwork(supportedNetworks[index]);
     }
   }, []);
 
@@ -57,6 +60,11 @@ const Header = () => {
 
     searchParams.set("network", selectedNetwork.name);
     setSearchParams(searchParams);
+    if (shouldRefreshPage.current) {
+      window.location.reload();
+    } else {
+      shouldRefreshPage.current = true;
+    }
   }, [selectedNetwork]);
 
   const changeConnectedNetwork = (network: ChainConfig) => {
@@ -126,31 +134,32 @@ const Header = () => {
                   </div>
                 );
               })}
-              {selectedAccount ? (
-                <div className={"border-primary border pl-[15px] cursor-pointer"}>
-                  <div className={"flex items-center gap-[10px]"}>
-                    <img alt="..." src={walletConfig?.logo} width={20} />
-                    <div
-                      onClick={onShowSelectAccountModal}
-                      className={"select-none pr-[15px] py-[5px] flex gap-[10px]"}
-                    >
-                      <div>{selectedAccount.prettyName ?? toShortAddress(selectedAccount.formattedAddress)}</div>
-                      <img className={"w-[16px]"} src={caretIcon} alt="image" />
+              {!isMultisig &&
+                (selectedAccount ? (
+                  <div className={"border-primary border pl-[15px] cursor-pointer"}>
+                    <div className={"flex items-center gap-[10px]"}>
+                      <img alt="..." src={walletConfig?.logo} width={20} />
+                      <div
+                        onClick={onShowSelectAccountModal}
+                        className={"select-none pr-[15px] py-[5px] flex gap-[10px]"}
+                      >
+                        <div>{selectedAccount.prettyName ?? toShortAddress(selectedAccount.formattedAddress)}</div>
+                        <img className={"w-[16px]"} src={caretIcon} alt="image" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <Button
-                  onClick={() => {
-                    connectWallet(walletConfig?.name || "Polkadot{.js}");
-                  }}
-                  className={"!h-[36px] !px-[15px]"}
-                  btnType={"secondary"}
-                  disabled={!walletConfig}
-                >
-                  {t(localeKeys.connectWallet)}
-                </Button>
-              )}
+                ) : (
+                  <Button
+                    onClick={() => {
+                      connectWallet(walletConfig?.name || "Polkadot{.js}");
+                    }}
+                    className={"!h-[36px] !px-[15px]"}
+                    btnType={"secondary"}
+                    disabled={!walletConfig}
+                  >
+                    {t(localeKeys.connectWallet)}
+                  </Button>
+                ))}
             </div>
             {/*network switch toggle*/}
             <div

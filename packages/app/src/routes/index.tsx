@@ -36,10 +36,32 @@ const browserRouter = createHashRouter([
         element: <LazyLoader componentFileName={"Home"} />,
       },
       {
+        path: "multisig-home",
+        element: <LazyLoader componentFileName={"MultisigHome"} />,
+      },
+      {
+        //This path is used when migrating a normal account
         path: "migration",
         element: (
           <Protected>
             <LazyLoader componentFileName={"Migration"} />
+          </Protected>
+        ),
+      },
+      {
+        //This path is used when migrating a multisig account
+        path: "multisig-migration",
+        element: (
+          <Protected>
+            <LazyLoader componentFileName={"MultisigMigration"} />
+          </Protected>
+        ),
+      },
+      {
+        path: "multisig-account-migration-summary",
+        element: (
+          <Protected>
+            <LazyLoader componentFileName={"MultisigAccountMigrationSummary"} />
           </Protected>
         ),
       },

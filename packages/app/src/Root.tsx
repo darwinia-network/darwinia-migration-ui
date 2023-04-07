@@ -16,7 +16,12 @@ const Root = () => {
     selectedNetwork,
     isLoadingTransaction,
     walletConfig,
+    setMultisig,
     isLoadingBalance,
+    isLoadingMultisigBalance,
+    isMultisig,
+    isCheckingMultisigCompleted,
+    ethereumError,
   } = useWallet();
   const { isLoadingLedger, isLoadingMigratedLedger } = useStorage();
   const [loading, setLoading] = useState<boolean | undefined>(false);
@@ -25,13 +30,23 @@ const Root = () => {
   const { t } = useAppTranslation();
 
   useEffect(() => {
-    setLoading(
-      isRequestingWalletConnection ||
-        isLoadingTransaction ||
-        isLoadingLedger ||
-        isLoadingMigratedLedger ||
-        isLoadingBalance
-    );
+    if (isMultisig) {
+      setLoading(
+        isRequestingWalletConnection ||
+          isLoadingTransaction ||
+          isLoadingBalance ||
+          isLoadingMultisigBalance ||
+          isCheckingMultisigCompleted
+      );
+    } else {
+      setLoading(
+        isRequestingWalletConnection ||
+          isLoadingTransaction ||
+          isLoadingLedger ||
+          isLoadingMigratedLedger ||
+          isLoadingBalance
+      );
+    }
   }, [
     isRequestingWalletConnection,
     isWalletConnected,
@@ -39,28 +54,60 @@ const Root = () => {
     isLoadingLedger,
     isLoadingMigratedLedger,
     isLoadingBalance,
+    isLoadingMultisigBalance,
+    isCheckingMultisigCompleted,
   ]);
 
   const redirect = useCallback(() => {
     setStore("isConnectedToWallet", true);
     if (location.pathname === "/") {
+      if (setMultisig) {
+        setMultisig(false);
+      }
       navigate(`/migration${location.search}`, { replace: true });
       return;
     }
 
-    /* only navigate if the user is supposed to be redirected to another URL */
-    if (location.state && location.state.from) {
-      const nextPath = location.state.from.pathname ? location.state.from.pathname : "/migration";
-      navigate(`${nextPath}${location.search}`, { replace: true });
+    if (location.pathname === "/multisig-home") {
+      /*The user is connected to the wallet but still trying to visit the connect wallet page*/
+      if (setMultisig) {
+        setMultisig(true);
+      }
+      const params = new URLSearchParams(location.search);
+      const redirectPath = params.get("redirect");
+      params.delete("redirect");
+      const destination = redirectPath ? redirectPath : "/multisig-migration";
+
+      navigate(`${destination}?${params.toString()}`, { replace: true });
+      return;
     }
-  }, [location, navigate]);
+
+    /* only navigate if the user is supposed to be redirected to another URL */
+    const params = new URLSearchParams(location.search);
+    const redirectPath = params.get("redirect");
+    if (redirectPath) {
+      params.delete("redirect");
+      navigate(`${redirectPath}?${params.toString()}`, { replace: true });
+    }
+  }, [location, navigate, setMultisig]);
 
   /*Monitor wallet connection and redirect to the required location */
   useEffect(() => {
     if (isWalletConnected) {
       redirect();
+    } else {
+      // the wallet isn't connected
+      if (location.pathname === "/") {
+        if (setMultisig) {
+          setMultisig(false);
+        }
+      } else if (location.pathname.includes("multisig")) {
+        if (setMultisig) {
+          setMultisig(true);
+        }
+      }
     }
-  }, [isWalletConnected]);
+  }, [isWalletConnected, location]);
 
   useEffect(() => {
     if (error) {
@@ -91,13 +138,59 @@ const Root = () => {
     }
   }, [error, walletConfig]);
 
+  useEffect(() => {
+    if (ethereumError) {
+      switch (ethereumError.code) {
+        case 0: {
+          /*The user has not installed the wallet*/
+          notification.error({
+            message: (
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: t(localeKeys.installWalletReminder, {
+                    walletName: "MetaMask",
+                    downloadURL: "https://metamask.io/",
+                  }),
+                }}
+              />
+            ),
+            duration: 10000,
+          });
+          break;
+        }
+        case 1: {
+          /*The user rejected adding the network configurations*/
+          notification.error({
+            message: <div>{t(localeKeys.chainAdditionRejected)}</div>,
+            duration: 10000,
+          });
+          break;
+        }
+        case 4: {
+          /*Configurations were added but the user rejected the account access permission*/
+          notification.error({
+            message: <div>{t(localeKeys.accountPermissionRejected)}</div>,
+          });
+          break;
+        }
+        default: {
+          notification.error({
+            message: <div>{ethereumError.message}</div>,
+          });
+        }
+      }
+    }
+  }, [ethereumError]);
+
   //check if it should auto connect to wallet or wait for the user to click the connect wallet button
+  // no need to auto connect so as to allow
   /*useEffect(() => {
     const shouldAutoConnect = getStore<boolean>("isConnectedToWallet");
     if (shouldAutoConnect && walletConfig) {
       connectWallet(walletConfig.name);
     }
-  }, [selectedNetwork, walletConfig]);*/
+  }, [selectedNetwork, walletConfig]);
+  }, [selectedNetwork]);*/
 
   return (
     <Spinner isLoading={!!loading} maskClassName={"!fixed !z-[99]"}>
