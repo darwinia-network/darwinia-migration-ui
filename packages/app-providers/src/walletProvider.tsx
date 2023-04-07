@@ -166,6 +166,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [isCorrectEthereumChain, setCorrectEthereumChain] = useState<boolean>(false);
   const [multisigMigrationStatus, setMultisigMigrationStatus] = useState<DarwiniaSourceAccountMigrationMultisig>();
   const [isCheckingMultisigCompleted, setIsCheckingMultisigCompleted] = useState<boolean>(false);
+  const [selectedChainId, setSelectedChainId] = useState();
 
   const { currentBlock } = useBlock(apiPromise);
   const { getAccountAsset, isLoadingWalletLedger } = useLedger({
@@ -217,7 +218,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   /*This will be fired once the connection to the wallet is successful*/
   useEffect(() => {
-    if (!selectedNetwork) {
+    if (!selectedNetwork || !isEthereumWalletConnected) {
       return;
     }
     //refresh the page with the newly selected account
@@ -230,7 +231,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     );
     setProvider(newProvider);
     setMultisigContract(multisigContract);
-  }, [selectedNetwork]);
+  }, [selectedNetwork, isEthereumWalletConnected]);
 
   const disconnectWallet = useCallback(() => {
     setSelectedAccount(undefined);
