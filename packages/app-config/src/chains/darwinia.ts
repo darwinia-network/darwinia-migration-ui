@@ -1,5 +1,5 @@
 import { ChainConfig } from "@darwinia/app-types";
-import multisigContract from "../abi/contract.json";
+import multisigContract from "../abi/darwiniaContract.json";
 
 export const darwinia: ChainConfig = {
   name: "Darwinia",
@@ -19,7 +19,7 @@ export const darwinia: ChainConfig = {
     ethereumDecimals: 18,
   },
   contractAddresses: {
-    multisig: "0x227c3e01071C2429766dDec2267A613e32DD463e", //TODO  update this accordingly
+    multisig: "0xEE62B94230F6F8834Fb1E73152C7348e54d60521",
   },
   contractInterface: {
     multisig: multisigContract,
@@ -31,3 +31,16 @@ export const darwinia: ChainConfig = {
     wssURL: "wss://rpc.darwinia.network",
   },
 };
+
+/*
+ * DevNet
+ * httpsURLs: ["https://cors.zimjs.com/http://g1.dev.darwinia.network:10000"]
+ * graphQlURL: "https://api.subquery.network/sq/isunaslabs/darwinia2",
+ * wssURL: "ws://g1.dev.darwinia.network:20000",
+ *
+ * LiveNet
+ * httpURLs: ["https://rpc.darwinia.network"]
+ * wssURL: "wss://rpc.darwinia.network",
+ * graphQlURL: "https://subql.darwinia.network/subql-apps-darwinia/",
+ *
+ * */
