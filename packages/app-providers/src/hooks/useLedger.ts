@@ -298,6 +298,8 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCalle
               const transferableRing = totalBalance.gt(0)
                 ? totalBalance.plus(reservedAmount).minus(totalDepositsAmount)
                 : BigNumber(0);
+              const transferableKTON = ktonBalance;
+
               const asset = {
                 ring: {
                   transferable: transferableRing,
@@ -308,7 +310,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCalle
                   vested: vestedAmountRing,
                 },
                 kton: {
-                  transferable: BigNumber(0),
+                  transferable: transferableKTON,
                   bonded: BigNumber(0),
                   unbonded: BigNumber(0),
                   unbonding: BigNumber(0),
