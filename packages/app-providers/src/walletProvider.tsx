@@ -347,7 +347,8 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       setLoadingBalance(false);
     };
 
-    parseAccounts().catch(() => {
+    parseAccounts().catch((err) => {
+      console.error(err);
       setLoadingBalance(false);
       //ignore
     });
