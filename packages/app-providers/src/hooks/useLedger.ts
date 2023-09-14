@@ -107,7 +107,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCalle
           accountId
         )) as unknown as Option<Vec<DepositEncoded>>;
 
-        let vestedAmountRing = BigNumber(0);
+        const vestedAmountRing = BigNumber(0); // vestings have been removed
         let totalBalance = BigNumber(0);
         let reservedAmount = BigNumber(0);
 
@@ -125,17 +125,18 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCalle
           reservedAmount = BigNumber(reserved);
         }
 
-        const vestingInfoOption = (await api.query.accountMigration.vestings(accountId)) as unknown as Option<
-          Vec<PalletVestingVestingInfo>
-        >;
-        if (vestingInfoOption.isSome) {
-          const unwrappedVestingInfo = vestingInfoOption.unwrap();
-          const vestingInfoList = unwrappedVestingInfo.toHuman() as unknown as Vec<PalletVestingVestingInfo>;
-          vestingInfoList.forEach((vesting) => {
-            const lockedAmount = vesting.locked.toString().replaceAll(",", "");
-            vestedAmountRing = vestedAmountRing.plus(lockedAmount);
-          });
-        }
+        // vestings have been removed
+        // const vestingInfoOption = (await api.query.accountMigration.vestings(accountId)) as unknown as Option<
+        //   Vec<PalletVestingVestingInfo>
+        // >;
+        // if (vestingInfoOption.isSome) {
+        //   const unwrappedVestingInfo = vestingInfoOption.unwrap();
+        //   const vestingInfoList = unwrappedVestingInfo.toHuman() as unknown as Vec<PalletVestingVestingInfo>;
+        //   vestingInfoList.forEach((vesting) => {
+        //     const lockedAmount = vesting.locked.toString().replaceAll(",", "");
+        //     vestedAmountRing = vestedAmountRing.plus(lockedAmount);
+        //   });
+        // }
 
         const parseData = (
           ledgerOption: Option<DarwiniaStakingLedgerEncoded> | undefined,
@@ -335,6 +336,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCalle
         return Promise.resolve(asset);
       };
       const asset = await getStakingLedgerAndDeposits().catch((e) => {
+        console.error(e);
         if (isDataAtPoint) {
           setMigratedAssetDistribution({
             ring: {
