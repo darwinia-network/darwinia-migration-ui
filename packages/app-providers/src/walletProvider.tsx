@@ -438,6 +438,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         }
         setSelectedWallet(name);
       } catch (e) {
+        console.error(e);
         setWalletConnected(false);
         setRequestingWalletConnection(false);
         setLoadingBalance(false);
