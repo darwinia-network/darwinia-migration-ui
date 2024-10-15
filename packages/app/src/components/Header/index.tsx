@@ -148,7 +148,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : (
+                ) : /* (
                   <Button
                     onClick={() => {
                       connectWallet(walletConfig?.name || "Polkadot{.js}");
@@ -159,7 +159,7 @@ const Header = () => {
                   >
                     {t(localeKeys.connectWallet)}
                   </Button>
-                ))}
+                ) */ null)}
             </div>
             {/*network switch toggle*/}
             <div
