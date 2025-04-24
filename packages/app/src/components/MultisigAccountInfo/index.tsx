@@ -63,7 +63,7 @@ const MultisigAccountInfo = ({
   //stores sorted members account address
   const allMembersRef = useRef<string[]>([]);
   const [newAccountThreshold, setNewAccountThreshold] = useState<string>(
-    accountBasicInfo?.destinationThreshold ? `${accountBasicInfo?.destinationThreshold}` : ""
+    accountBasicInfo?.destinationThreshold ? `${accountBasicInfo?.destinationThreshold}` : "",
   );
   const [newMultisigAccountAddress, setNewMultisigAccountAddress] = useState<string>("");
   const [isIsGeneratingMultisigAccount, setIsGeneratingMultisigAccount] = useState<boolean>(false);
@@ -119,7 +119,7 @@ const MultisigAccountInfo = ({
     members: MultisigMemberAddress[],
     selectedEthereumAccount: string,
     multisigSubstrateAddress: string,
-    destinationThreshold: string
+    destinationThreshold: string,
   ) => {
     try {
       setIsGeneratingMultisigAccount(true);
@@ -251,7 +251,7 @@ const MultisigAccountInfo = ({
               message: <div>{t(localeKeys.migrationFailed)}</div>,
             });
           }
-        }
+        },
       );
     } catch (e) {
       console.log(e);
@@ -489,7 +489,7 @@ const MultisigAccountInfo = ({
                   const isMyAccount = !!injectedAccounts?.find(
                     (account) =>
                       convertToSS58(account.address, selectedNetwork?.prefix ?? 18).toLowerCase() ===
-                      member.toLowerCase()
+                      member.toLowerCase(),
                   );
                   return (
                     <div

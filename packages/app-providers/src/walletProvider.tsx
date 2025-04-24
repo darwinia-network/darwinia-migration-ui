@@ -111,7 +111,7 @@ const initialState: WalletCtx = {
     otherAccounts: string[],
     threshold: string,
     multisigDestinationParams: MultisigDestinationParams | null,
-    callback: (isSuccessful: boolean) => void
+    callback: (isSuccessful: boolean) => void,
   ) => {
     //ignore
   },
@@ -119,7 +119,7 @@ const initialState: WalletCtx = {
     from: string,
     to: string,
     signerAddress: string,
-    callback: (isSuccessful: boolean) => void
+    callback: (isSuccessful: boolean) => void,
   ) => {
     //ignore
   },
@@ -185,6 +185,33 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     setStore("selectedWallet", name);
   }, []);
 
+  // Force set test account for local development
+  useEffect(() => {
+    // Only run in development environment
+    if (process.env.NODE_ENV === "development" && isWalletConnected && injectedAccounts?.length) {
+      const testAccountAddress = "2sq4rdopkTNRrB36fw6yzqpjJktjvFQt2CVYfTkQevUq65od";
+
+      // Force set the account
+      forcedAccountAddress.current = testAccountAddress;
+      console.log("Development mode: Force setting test account to:", testAccountAddress);
+
+      // Find if the account already exists in injected accounts
+      const existingAccount = injectedAccounts.find((acc) => acc.formattedAddress === testAccountAddress);
+
+      if (existingAccount) {
+        // If it exists, select it
+        setSelectedAccount(existingAccount);
+        console.log("Found and selected existing account:", existingAccount);
+      } else {
+        // Otherwise trigger a reload of the accounts to include the forced account
+        isInitialLoadingBalance.current = true;
+        // This will cause the useEffect that loads account balances to run again
+        setLoadingBalance(true);
+        console.log("Account not found in injected accounts, triggering reload");
+      }
+    }
+  }, [isWalletConnected, injectedAccounts]);
+
   useEffect(() => {
     _setSelectedWallet(getStore("selectedWallet"));
   }, []);
@@ -227,7 +254,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     const multisigContract = new ethers.Contract(
       selectedNetwork.contractAddresses.multisig,
       selectedNetwork.contractInterface.multisig,
-      newSigner
+      newSigner,
     );
     setProvider(newProvider);
     setMultisigContract(multisigContract);
@@ -282,7 +309,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         ...asset,
       });
     },
-    [apiPromise, currentBlock]
+    [apiPromise, currentBlock],
   );
 
   useEffect(() => {
@@ -445,7 +472,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         //ignore
       }
     },
-    [selectedNetwork, isRequestingWalletConnection, apiPromise, getPrettyName]
+    [selectedNetwork, isRequestingWalletConnection, apiPromise, getPrettyName],
   );
 
   const isEthereumWalletInstalled = () => {
@@ -456,7 +483,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     (address: string): Promise<string | undefined> => {
       return getPrettyName(address);
     },
-    [apiPromise]
+    [apiPromise],
   );
 
   /* Listen to metamask account changes */
@@ -600,7 +627,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     (network: ChainConfig) => {
       setSelectedNetwork(network);
     },
-    [selectedNetwork]
+    [selectedNetwork],
   );
 
   const forceSetAccountAddress = useCallback((accountAddress: string) => {
@@ -655,7 +682,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         }
       };
     },
-    [apiPromise, signer, specName]
+    [apiPromise, signer, specName],
   );
 
   const onInitMultisigMigration = useCallback(
@@ -666,7 +693,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       otherAccounts: string[],
       threshold: string,
       multisigDestinationParams: MultisigDestinationParams | null,
-      callback: (isSuccessful: boolean) => void
+      callback: (isSuccessful: boolean) => void,
     ) => {
       let unSubscription: UnSubscription;
       try {
@@ -691,7 +718,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
           threshold,
           to,
           signature,
-          multisigDestinationParams
+          multisigDestinationParams,
         );
 
         unSubscription = (await extrinsic.send((result: SubmittableResult) => {
@@ -713,7 +740,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         }
       };
     },
-    [apiPromise, signer, specName]
+    [apiPromise, signer, specName],
   );
 
   const onApproveMultisigMigration = useCallback(
@@ -740,7 +767,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         const extrinsic = await apiPromise.tx.accountMigration.completeMultisigMigration(
           from,
           signerAddress,
-          signature
+          signature,
         );
 
         unSubscription = (await extrinsic.send((result: SubmittableResult) => {
@@ -762,7 +789,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         }
       };
     },
-    [apiPromise, signer, specName]
+    [apiPromise, signer, specName],
   );
 
   const checkMultisigAccountMigrationStatus = useCallback(
@@ -783,7 +810,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       setMultisigMigrationStatus(resultObj);
       return Promise.resolve(resultObj);
     },
-    [apiPromise]
+    [apiPromise],
   );
 
   useEffect(() => {
@@ -834,7 +861,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
       return Promise.resolve(account);
     },
-    [apiPromise, selectedNetwork]
+    [apiPromise, selectedNetwork],
   );
 
   const isMultisigAccountDeployed = useCallback(
@@ -842,7 +869,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
       const result = await provider?.getCode(accountAddress);
       return result !== "0x";
     },
-    [provider]
+    [provider],
   );
 
   return (

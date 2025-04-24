@@ -165,7 +165,7 @@ const MultisigMigrationProcess = () => {
       params.set("threshold", item.threshold.toString());
       navigate(`/multisig-account-migration-summary?${params.toString()}`);
     },
-    [location]
+    [location],
   );
 
   const prepareMultisigAccountData = async (accountList: MultisigAccount[]): Promise<MultisigAccountData[]> => {
@@ -291,7 +291,7 @@ const MultisigMigrationProcess = () => {
       const multisigAccounts: MultisigAccount[] = getStore("multisigAccounts") ?? [];
       //remove the account is it was already available in the local storage
       const filteredAccounts = multisigAccounts.filter(
-        (multisigAccount) => multisigAccount.address !== account.address
+        (multisigAccount) => multisigAccount.address !== account.address,
       );
       filteredAccounts.push(account);
       setStore("multisigAccounts", filteredAccounts);

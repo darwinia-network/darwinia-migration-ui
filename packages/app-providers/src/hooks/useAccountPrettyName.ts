@@ -65,7 +65,7 @@ const useAccountPrettyName = (apiPromise: ApiPromise | undefined) => {
       });
       return Promise.resolve(res ? res.toUpperCase() : undefined);
     },
-    [apiPromise]
+    [apiPromise],
   );
 
   return {

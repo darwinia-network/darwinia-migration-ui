@@ -38,8 +38,8 @@ const Dropdown = ({
   const [isDropdownVisible, setDropdownVisibility] = useState(false);
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const left = offset ? offset[0] ?? auto : auto;
-  const top = offset ? offset[1] ?? auto : auto;
+  const left = offset ? (offset[0] ?? auto) : auto;
+  const top = offset ? (offset[1] ?? auto) : auto;
   const isEventSelfTriggered = useRef(false);
 
   const onDropdownContentClicked = (e: MouseEvent<HTMLDivElement>) => {

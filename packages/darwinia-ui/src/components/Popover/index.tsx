@@ -135,7 +135,7 @@ const Popover = ({
         {children}
       </div>
     </div>,
-    document.body
+    document.body,
   );
 
   return (

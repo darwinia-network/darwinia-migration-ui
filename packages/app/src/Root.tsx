@@ -36,7 +36,7 @@ const Root = () => {
           isLoadingTransaction ||
           isLoadingBalance ||
           isLoadingMultisigBalance ||
-          isCheckingMultisigCompleted
+          isCheckingMultisigCompleted,
       );
     } else {
       setLoading(
@@ -44,7 +44,7 @@ const Root = () => {
           isLoadingTransaction ||
           isLoadingLedger ||
           isLoadingMigratedLedger ||
-          isLoadingBalance
+          isLoadingBalance,
       );
     }
   }, [

@@ -30,7 +30,7 @@ export const dAppSupportedWallets: WalletConfig[] = [
         downloadURL: "https://polkadot.js.org/extension/",
       },
     ],
-    sources: ['polkadot-js', '"polkadot-js"'],
+    sources: ["polkadot-js", '"polkadot-js"'],
   },
   {
     name: "Talisman",
@@ -45,7 +45,7 @@ export const dAppSupportedWallets: WalletConfig[] = [
         downloadURL: "https://addons.mozilla.org/en-US/firefox/addon/talisman-wallet-extension/",
       },
     ],
-    sources: ['talisman', '"talisman"'],
+    sources: ["talisman", '"talisman"'],
   },
   {
     name: "SubWallet",
@@ -72,7 +72,7 @@ export const dAppSupportedWallets: WalletConfig[] = [
         downloadURL: "https://subwallet.app/download.html",
       },
     ],
-    sources: ['subwallet-js', '"subwallet-js"']
+    sources: ["subwallet-js", '"subwallet-js"'],
   },
   {
     name: "NovaWallet",

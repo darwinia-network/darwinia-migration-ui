@@ -78,7 +78,7 @@ export const StorageProvider = ({ children }: PropsWithChildren) => {
                 break;
               }
             }
-          }
+          },
         );
 
         return Promise.resolve();
@@ -87,7 +87,7 @@ export const StorageProvider = ({ children }: PropsWithChildren) => {
         return Promise.resolve();
       }
     },
-    [apiPromise]
+    [apiPromise],
   );
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export const StorageProvider = ({ children }: PropsWithChildren) => {
     const newMultisigContract = new ethers.Contract(
       selectedNetwork.contractAddresses.multisig,
       selectedNetwork.contractInterface.multisig,
-      newSigner
+      newSigner,
     );
 
     setMultisigContract(newMultisigContract);

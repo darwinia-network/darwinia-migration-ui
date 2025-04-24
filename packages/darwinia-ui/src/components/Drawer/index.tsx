@@ -73,7 +73,7 @@ const Drawer = forwardRef<DrawerRefs, DrawerProps>(({ isVisible = false, drawerS
         </div>
       </div>
     </CSSTransition>,
-    document.body
+    document.body,
   );
 });
 

@@ -27,7 +27,7 @@ const createNotification = (
   placement: Placement,
   duration: number,
   autoClose: boolean,
-  leftIcon?: string
+  leftIcon?: string,
 ) => {
   if (notificationsSlots[placement]) {
     const oldCount = (notificationsCounter[placement] ? notificationsCounter[placement] : 1) as number;
