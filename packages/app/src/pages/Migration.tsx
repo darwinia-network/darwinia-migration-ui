@@ -25,7 +25,7 @@ export interface MigrationResult {
 const Migration = () => {
   const { isAccountMigratedJustNow, selectedAccount } = useWallet();
   const [accountMigrated, setAccountMigrated] = useState<boolean>();
-  const migrationCheckRef = useRef<NodeJS.Timer>();
+  const migrationCheckRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     loading: isLoading,
@@ -48,14 +48,14 @@ const Migration = () => {
 
   useEffect(() => {
     if (migrationCheckRef.current) {
-      clearInterval(migrationCheckRef.current);
+      clearInterval(migrationCheckRef.current as NodeJS.Timeout);
     }
     /*when the account is just migrated, subquery won't have the data yet, keep looping until subquery has data */
     if (isAccountMigratedJustNow) {
       migrationCheckRef.current = setInterval(async () => {
         try {
           if (migrationResult?.accountMigration) {
-            clearInterval(migrationCheckRef.current);
+            clearInterval(migrationCheckRef.current as NodeJS.Timeout);
           }
           await refetch({
             accountAddress: selectedAccount?.formattedAddress ?? "",
@@ -66,7 +66,7 @@ const Migration = () => {
       }, 5000);
     }
     return () => {
-      clearInterval(migrationCheckRef.current);
+      clearInterval(migrationCheckRef.current as NodeJS.Timeout);
     };
   }, [isAccountMigratedJustNow, migrationResult]);
 

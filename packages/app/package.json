@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 3030 --open --host",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fix-types": "tsc --skipLibCheck --noEmit"
   },
   "dependencies": {
     "@apollo/client": "^3.7.2",

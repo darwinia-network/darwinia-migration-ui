@@ -86,7 +86,7 @@ const MultisigAccountMigrationSummary = () => {
     useState<DarwiniaSourceAccountMigrationMultisig>();
   const [multisigDestinationParams, setMultisigDestinationParams] = useState<MultisigDestinationParams>();
   const [accountBasicInfo, setAccountBasicInfo] = useState<AccountBasicInfo>();
-  const refetchRef = useRef<NodeJS.Timer>();
+  const refetchRef = useRef<NodeJS.Timeout | null>(null);
   const [isMigrationInitialized, setMigrationInitialized] = useState<boolean>(false);
 
   const {
@@ -233,14 +233,14 @@ const MultisigAccountMigrationSummary = () => {
           });
           if (isMultisigAccountMigratedJustNow) {
             if (refetchRef.current) {
-              clearInterval(refetchRef.current);
+              clearInterval(refetchRef.current as NodeJS.Timeout);
             }
             refetchRef.current = setInterval(async () => {
               await refetchMultisigMigrationResult({
                 accountAddress: sourceAddress,
               });
               if (multisigMigrationResult && multisigMigrationResult.multisigAccountMigration) {
-                clearInterval(refetchRef.current);
+                clearInterval(refetchRef.current as NodeJS.Timeout);
               }
             }, 5000);
           }
@@ -265,7 +265,7 @@ const MultisigAccountMigrationSummary = () => {
 
     return () => {
       if (refetchRef.current) {
-        clearInterval(refetchRef.current);
+        clearInterval(refetchRef.current as NodeJS.Timeout);
       }
     };
   }, [

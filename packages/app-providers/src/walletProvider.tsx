@@ -185,6 +185,35 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     setStore("selectedWallet", name);
   }, []);
 
+  // Force set test account for local development
+  useEffect(() => {
+    // Only run in development environment
+    if (process.env.NODE_ENV === "development" && isWalletConnected && injectedAccounts?.length) {
+      const testAccountAddress = "2sq4rdopkTNRrB36fw6yzqpjJktjvFQt2CVYfTkQevUq65od";
+
+      // Force set the account
+      forcedAccountAddress.current = testAccountAddress;
+      console.log("Development mode: Force setting test account to:", testAccountAddress);
+
+      // Find if the account already exists in injected accounts
+      const existingAccount = injectedAccounts.find(
+        acc => acc.formattedAddress === testAccountAddress
+      );
+
+      if (existingAccount) {
+        // If it exists, select it
+        setSelectedAccount(existingAccount);
+        console.log("Found and selected existing account:", existingAccount);
+      } else {
+        // Otherwise trigger a reload of the accounts to include the forced account
+        isInitialLoadingBalance.current = true;
+        // This will cause the useEffect that loads account balances to run again
+        setLoadingBalance(true);
+        console.log("Account not found in injected accounts, triggering reload");
+      }
+    }
+  }, [isWalletConnected, injectedAccounts]);
+
   useEffect(() => {
     _setSelectedWallet(getStore("selectedWallet"));
   }, []);
