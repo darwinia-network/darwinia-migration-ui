@@ -13,7 +13,7 @@ export interface ButtonProps extends DetailedHTMLProps<ButtonHTMLAttributes<HTML
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     { children, isLoading = false, style, className, btnType = "primary", size = "large", ...rest }: ButtonProps,
-    ref
+    ref,
   ) => {
     return (
       <Spinner maskClassName={"dw-btn-spinner-custom-mask"} size={"small"} isLoading={isLoading}>
@@ -22,7 +22,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         </button>
       </Spinner>
     );
-  }
+  },
 );
 
 Button.displayName = "Button";

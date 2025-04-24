@@ -47,7 +47,7 @@ const DateRangePicker = forwardRef<DateRangePickerRef, DateRangePickerProps>(
       monthClassName = "",
       monthsToShow = 1,
     }: DateRangePickerProps,
-    ref
+    ref,
   ) => {
     const [startDate, setStartDate] = useState<Date>();
     const [endDate, setEndDate] = useState<Date>();
@@ -242,7 +242,7 @@ const DateRangePicker = forwardRef<DateRangePickerRef, DateRangePickerProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 DateRangePicker.displayName = "DateRangePicker";

@@ -72,8 +72,8 @@ const Select = ({
     selectedValuesArray = isMultiple
       ? selectedValuesArray
       : selectedValuesArray && selectedValuesArray.length > 0
-      ? [selectedValuesArray[0]]
-      : selectedValuesArray;
+        ? [selectedValuesArray[0]]
+        : selectedValuesArray;
     selectedItemsJSX.current = selectedValuesArray.map((value) => {
       const item = optionsList.find((option) => option.value === value);
       if (!item) {
@@ -139,8 +139,8 @@ const Select = ({
           ? "dw-multiple-selected-option"
           : ""
         : selectedValuesRef.current.includes(item.value)
-        ? "dw-selected-option"
-        : "";
+          ? "dw-selected-option"
+          : "";
 
       return (
         <div

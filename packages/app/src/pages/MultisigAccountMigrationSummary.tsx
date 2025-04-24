@@ -110,7 +110,7 @@ const MultisigAccountMigrationSummary = () => {
       variables: {
         accountAddress: sourceAddress,
       },
-    }
+    },
   );
 
   // this will hide both the tabs section and the account summary when the component is mounted

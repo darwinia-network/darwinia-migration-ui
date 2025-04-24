@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  AssetDistribution,
-  ChainConfig,
-} from "@darwinia/app-types";
+import { AssetDistribution, ChainConfig } from "@darwinia/app-types";
 import BigNumber from "bignumber.js";
 import { ApiPromise } from "@polkadot/api";
 import useBlock from "./useBlock";
@@ -46,7 +43,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCalle
       accountId: string,
       parentBlockHash?: string,
       hasReturnOutput = false,
-      showLoading = true
+      showLoading = true,
     ): Promise<AssetDistribution | undefined | void> => {
       const isDataAtPoint = typeof parentBlockHash !== "undefined";
 
@@ -156,7 +153,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCalle
 
       return Promise.resolve(asset);
     },
-    [apiPromise, currentBlock]
+    [apiPromise, currentBlock],
   );
 
   useEffect(() => {
@@ -169,7 +166,7 @@ const useLedger = ({ apiPromise, selectedAccount, selectedNetwork, isWalletCalle
     (sourceAccountId: string, parentBlockHash: string) => {
       getAccountAsset(sourceAccountId, parentBlockHash);
     },
-    [apiPromise, currentBlock]
+    [apiPromise, currentBlock],
   );
 
   return {

@@ -59,7 +59,7 @@ const ModalEnhanced = forwardRef<ModalEnhancedRefs, ModalEnhancedProps>(
       spinnerText,
       isCancellable = true,
     },
-    ref
+    ref,
   ) => {
     const [isModalVisible, setModalVisibility] = useState(false);
 
@@ -163,7 +163,7 @@ const ModalEnhanced = forwardRef<ModalEnhancedRefs, ModalEnhancedProps>(
         </div>
       </Modal>
     );
-  }
+  },
 );
 
 ModalEnhanced.displayName = "ModalEnhanced";

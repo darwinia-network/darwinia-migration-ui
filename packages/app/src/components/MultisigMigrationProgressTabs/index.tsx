@@ -138,7 +138,7 @@ const MultisigMigrationProgressTabs = ({
                         {sourceMemberAccounts?.map((item, index) => {
                           let tag: JSX.Element | string = "";
                           const isMyAccount = !!injectedAccounts?.find(
-                            (account) => account.formattedAddress.toLowerCase() === item.address.toLowerCase()
+                            (account) => account.formattedAddress.toLowerCase() === item.address.toLowerCase(),
                           );
 
                           if (item.hasApproved) {

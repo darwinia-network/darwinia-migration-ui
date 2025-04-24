@@ -1,4 +1,4 @@
-import { Timeout } from 'node:timers';
+import { Timeout } from "node:timers";
 
 declare global {
   // Make NodeJS.Timer compatible with clearInterval

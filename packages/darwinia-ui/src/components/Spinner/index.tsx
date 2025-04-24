@@ -24,13 +24,7 @@ const Spinner: React.FC<SpinnerProps> = ({
   const nodeRef = useRef(null);
 
   return (
-    <CSSTransition
-      in={active || isLoading}
-      timeout={300}
-      classNames="spinner"
-      unmountOnExit
-      nodeRef={nodeRef}
-    >
+    <CSSTransition in={active || isLoading} timeout={300} classNames="spinner" unmountOnExit nodeRef={nodeRef}>
       <div ref={nodeRef} className={`spinner-container ${className}`} {...props}>
         {spinnerText && <div className="spinner-text">{spinnerText}</div>}
         <div className={`spinner-mask ${maskClassName}`}></div>

@@ -104,13 +104,13 @@ export interface WalletCtx {
     otherAccounts: string[],
     threshold: string,
     multisigDestinationParams: MultisigDestinationParams | null,
-    callback: (isSuccessful: boolean) => void
+    callback: (isSuccessful: boolean) => void,
   ) => void;
   onApproveMultisigMigration: (
     from: string,
     to: string,
     signerAddress: string,
-    callback: (isSuccessful: boolean) => void
+    callback: (isSuccessful: boolean) => void,
   ) => void;
   isAccountMigratedJustNow: boolean | undefined;
   walletConfig: WalletConfig | undefined;
@@ -121,7 +121,7 @@ export interface WalletCtx {
     initializer: string,
     signatories: string[],
     threshold: number,
-    name?: string
+    name?: string,
   ) => Promise<MultisigAccount | undefined>;
   getAccountBalance: (account: string) => Promise<AssetDistribution | undefined>;
   checkMultisigAccountMigrationStatus: (account: string) => Promise<undefined | DarwiniaSourceAccountMigrationMultisig>;

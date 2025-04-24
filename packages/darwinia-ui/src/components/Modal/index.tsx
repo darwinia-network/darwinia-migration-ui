@@ -69,9 +69,9 @@ const Modal = forwardRef<ModalRefs, ModalProps>(
           </div>
         </div>
       </CSSTransition>,
-      document.body
+      document.body,
     );
-  }
+  },
 );
 
 Modal.displayName = "Modal";
