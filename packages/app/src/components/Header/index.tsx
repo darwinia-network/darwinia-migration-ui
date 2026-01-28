@@ -10,6 +10,7 @@ import { ChainConfig } from "@darwinia/app-types";
 import { toShortAddress } from "@darwinia/app-utils";
 import Identicon from "@polkadot/react-identicon";
 import SelectAccountModal, { SelectAccountModalRef } from "../SelectAccountModal";
+import { getInitialWalletParamsFromUrlSearch } from "./getInitialWalletParamsFromUrlSearch";
 
 const Header = () => {
   const [networkOptionsTrigger, setNetworkOptionsTrigger] = useState<HTMLDivElement | null>(null);
@@ -31,25 +32,17 @@ const Header = () => {
 
   /* set the wallet network accordingly */
   useEffect(() => {
-    const searchString = window.location.href.split("?")[1];
-    if (searchString) {
-      const searchParams = new URLSearchParams(searchString);
-      const network = searchParams.get("network");
-      const account = searchParams.get("account");
-      if (network) {
-        // the URL contains the network param
-        const foundNetwork = supportedNetworks.find((item) => item.name.toLowerCase() === network.toLowerCase());
-        if (foundNetwork) {
-          changeSelectedNetwork(foundNetwork);
-        }
-      }
-      if (account) {
-        forceSetAccountAddress(account);
-      }
-    } else {
-      /* use test network by default */
-      const index = supportedNetworks.findIndex((network) => network.name === "Crab");
-      changeSelectedNetwork(supportedNetworks[index]);
+    const { networkToSelect, accountToSelect } = getInitialWalletParamsFromUrlSearch({
+      supportedNetworks,
+      search: window.location.search,
+    });
+
+    if (networkToSelect) {
+      changeSelectedNetwork(networkToSelect);
+    }
+
+    if (accountToSelect) {
+      forceSetAccountAddress(accountToSelect);
     }
   }, []);
 

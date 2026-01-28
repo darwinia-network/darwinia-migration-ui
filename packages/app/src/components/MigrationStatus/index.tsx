@@ -6,8 +6,6 @@ import copyIcon from "../../assets/images/copy.svg";
 import clockIcon from "../../assets/images/clock.svg";
 import ringIcon from "../../assets/images/ring.svg";
 import ktonIcon from "../../assets/images/kton.svg";
-import crabIcon from "../../assets/images/crab.svg";
-import cktonIcon from "../../assets/images/ckton.svg";
 import helpIcon from "../../assets/images/help.svg";
 import { Tooltip } from "@darwinia/ui";
 import { useStorage, useWallet } from "@darwinia/app-providers";
@@ -41,8 +39,8 @@ const MigrationStatus = ({ accountMigration }: Props) => {
     }
   }, [accountMigration]);
 
-  const ringTokenIcon = selectedNetwork?.name === "Crab" ? crabIcon : ringIcon;
-  const ktonTokenIcon = selectedNetwork?.name === "Crab" ? cktonIcon : ktonIcon;
+  const ringTokenIcon = ringIcon;
+  const ktonTokenIcon = ktonIcon;
 
   const getRingTooltipMessage = () => {
     return (

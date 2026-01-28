@@ -126,7 +126,7 @@ export function convertToSS58(text: string, prefix: number, isShort = false): st
 export const createMultiSigAccount = (addresses: string[], prefix: number, threshold = 1) => {
   const multiAddress = createKeyMulti(addresses, threshold);
 
-  // Convert byte array to SS58 encoding. pangoro-18, crab-42
+  // Convert byte array to SS58 encoding using the provided prefix
   const ss58Address = encodeAddress(multiAddress, prefix);
 
   return ss58Address;
