@@ -222,10 +222,6 @@ const MultisigMigrationProcess = () => {
 
   const footerLinks = [
     {
-      title: t(localeKeys.howToMigrate),
-      url: "https://www.notion.so/itering/How-to-migrate-the-account-to-Crab-2-0-9b8f835c914f44a29d9727a0a03b9f5d",
-    },
-    {
       title: t(localeKeys.darwiniaMergeOverview),
       url: "https://medium.com/darwinianetwork/darwinia-2-0-merge-overview-96af96d668aa",
     },

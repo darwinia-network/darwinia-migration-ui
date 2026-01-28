@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Identicon from "@polkadot/react-identicon";
 import BigNumber from "bignumber.js";
-import crabIcon from "../../assets/images/crab.svg";
 import ringIcon from "../../assets/images/ring.svg";
-import cktonIcon from "../../assets/images/ckton.svg";
 import ktonIcon from "../../assets/images/kton.svg";
 import helpIcon from "../../assets/images/help.svg";
 import infoIcon from "../../assets/images/info.svg";
@@ -91,8 +89,8 @@ const MultisigMigrationProgressTabs = ({
     });
   }, [location, apiPromise, sourceMultisigMigrationStatus, recentlyApprovedAddresses]);
 
-  const ringTokenIcon = selectedNetwork?.name === "Crab" ? crabIcon : ringIcon;
-  const ktonTokenIcon = selectedNetwork?.name === "Crab" ? cktonIcon : ktonIcon;
+  const ringTokenIcon = ringIcon;
+  const ktonTokenIcon = ktonIcon;
 
   const getRingTooltipMessage = () => {
     return <div>Ring Message</div>;

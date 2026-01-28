@@ -3,7 +3,7 @@ import { AssetBalance } from "./storage";
 
 export type SupportedWallet = "Polkadot{.js}" | "Talisman" | "SubWallet" | "NovaWallet";
 export type SupportedBrowser = "Chrome" | "Firefox" | "Brave" | "Edge" | "Opera";
-export type ChainName = "Crab" | "Pangolin" | "Darwinia" | "Pangoro";
+export type ChainName = "Pangolin" | "Darwinia" | "Pangoro";
 import { Struct } from "@polkadot/types";
 import { Contract, ContractInterface } from "@ethersproject/contracts";
 import { ApiPromise } from "@polkadot/api";
